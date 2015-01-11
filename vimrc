@@ -209,7 +209,8 @@ let g:ctrlp_use_caching = 0
 
 " indentLine
 " let g:indentLine_char = '⋮'
-let g:indentLine_char = '│'
+" let g:indentLine_char = '│'
+let g:indentLine_char = ' ' " Easy way out to disable indentLine temporarily
 
 " Extra Haskell hightlighting options
 let hs_highlight_boolean = 1
