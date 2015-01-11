@@ -1,0 +1,29 @@
+*.log
+*.bak
+*.tmp
+
+# vim
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+# emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# mercurial
+/.hg/*
+*/.hg/*
+.hgignore
+
+# node
+npm-debug.log
