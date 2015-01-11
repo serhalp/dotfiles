@@ -197,6 +197,12 @@ set tabpagemax=50                 " What purpose does this serve again?
 set list listchars=               " Show whitespace characters explicitly.                         
 set hidden                        " Allow edited buffers to exist behind the scenes.
 
+" Highlight current line and column
+set cursorline
+set cursorcolumn
+highlight CursorLine guibg=#333333
+highlight CursorColumn guibg=#333333
+
 " CtrlP
 let g:ctrlp_user_command = ['.git/', 'git ls-files -co -X .gitignore %s']
 let g:ctrlp_use_caching = 0
