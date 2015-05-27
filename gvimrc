@@ -1,6 +1,8 @@
 set guitablabel=%{GuiTabLabel()}  " Prefix tab labels with #s
 
-colorscheme wombat
+set background=dark
+colorscheme solarized
+
 set guioptions-=T
 set guioptions-=r
 set guioptions-=R

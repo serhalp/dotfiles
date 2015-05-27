@@ -50,6 +50,9 @@ endif " has("autocmd")
 autocmd StdinReadPre * let s:std_in=1
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
+" Override color scheme backgroud colour.
+" autocmd ColorScheme * highlight Normal guibg=#242424
+
 " Convenient command to see the difference between the current buffer and the
 " file it was loaded from, thus the changes you made.
 command! DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
