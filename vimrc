@@ -211,7 +211,7 @@ highlight CursorLine guibg=#333333
 highlight CursorColumn guibg=#333333
 
 " CtrlP
-let g:ctrlp_user_command = ['.git/', 'git ls-files -co -X .gitignore %s']
+let g:ctrlp_user_command = ['.git/', 'git ls-files -co --exclude-standard %s']
 let g:ctrlp_use_caching = 0
 
 " indentLine
