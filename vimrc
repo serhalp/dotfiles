@@ -214,6 +214,9 @@ highlight CursorColumn guibg=#333333
 let g:ctrlp_user_command = ['.git/', 'git ls-files -co --exclude-standard %s']
 let g:ctrlp_use_caching = 0
 
+" Ag
+let g:ag_highlight=1
+
 " indentLine
 " let g:indentLine_char = '⋮'
 " let g:indentLine_char = '│'
