@@ -157,6 +157,10 @@ noremap g= <C-w>=
 noremap <leader>w :close<CR>
 noremap <leader>W :only<CR>
 
+" Easier next and previous item in quickfix list
+noremap <M-n> :cnext<CR>
+noremap <M-p> :cprevious<CR>
+
 " Move a line of text around with Alt+j/Alt+k
 nmap <M-j> mz:m+<cr>`z
 nmap <M-k> mz:m-2<cr>`z
