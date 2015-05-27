@@ -97,7 +97,7 @@ nnoremap <Space> <Nop>
 let mapleader = " "
 
 " Toggle search highlighting
-map <leader>h :set invhlsearch
+map <leader>h :set invhlsearch<CR>
 
 " Tab to exit insert mode + tweaks
 nnoremap <Tab> <Esc>
