@@ -1,6 +1,8 @@
 export EDITOR='mvim -f --nomru -c "au VimLeave * !open -a Terminal"'
 export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
+export BREW_PREFIX=`brew --prefix`
+
 if [[ -x $(which brew) ]]; then
   nvm_path="$(brew --prefix nvm)/nvm.sh"
   [[ -f $nvm_path ]] && source $nvm_path
@@ -14,8 +16,12 @@ if [ -f ~/.sekret ]; then
   source ~/.sekret
 fi
 
-if [ -f $(brew --prefix)/etc/bash_completion ]; then
-  . $(brew --prefix)/etc/bash_completion
+COMPLETION_DIR=${BREW_PREFIX}/etc/bash_completion.d
+if [ -d ${COMPLETION_DIR} ]; then
+  for file in `ls ${COMPLETION_DIR}`
+  do
+    . "${COMPLETION_DIR}/${file}"
+  done
 fi
 
 npmrc_export_auth(){
