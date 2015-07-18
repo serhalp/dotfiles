@@ -78,3 +78,7 @@ npmrc(){
 }
 # initial
 npmrc_export_auth;
+
+reshrinkwrap_module(){
+  npm uninstall --save $1 && clingwrap $1 && npm prune && npm install && npm install --save $1@$2 && clingwrap $1
+}
