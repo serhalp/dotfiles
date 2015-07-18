@@ -206,6 +206,7 @@ set autowrite                     " Automagically save file before :make'ing
 set tabpagemax=50                 " What purpose does this serve again?
 set list listchars=               " Show whitespace characters explicitly.                         
 set hidden                        " Allow edited buffers to exist behind the scenes.
+set keywordprg=npm\ docs          " Open docs for NPM module under cursor with `K`.
 
 " Highlight current line and column
 set cursorline
