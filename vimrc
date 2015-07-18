@@ -167,6 +167,9 @@ nmap <M-k> mz:m-2<cr>`z
 vmap <M-j> :m'>+<cr>`<my`>mzgv`yo`z
 vmap <M-k> :m'<-2<cr>`>my`<mzgv`yo`z
 
+" Global grep for word under cursor with Alt-* (Alt-Shift-*)
+noremap <M-*> :Ag "<C-R><C-W>"<CR>
+
 " Copy current filename to system clipboard
 nnoremap <leader>f :let @* = expand("%")<CR>
 
