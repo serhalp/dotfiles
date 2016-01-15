@@ -2,6 +2,8 @@ export EDITOR='mvim -f --nomru -c "au VimLeave * !open -a Terminal"'
 export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export BREW_PREFIX=`brew --prefix`
+export RBENV_ROOT=/usr/local/var/rbenv
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 if [[ -x $(which brew) ]]; then
   nvm_path="$(brew --prefix nvm)/nvm.sh"
