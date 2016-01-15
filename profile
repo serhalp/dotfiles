@@ -6,7 +6,8 @@ export RBENV_ROOT=/usr/local/var/rbenv
 if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 if [[ -x $(which brew) ]]; then
-  nvm_path="$(brew --prefix nvm)/nvm.sh"
+  BREW_NVM_PREFIX=`brew --prefix nvm`
+  nvm_path=${BREW_NVM_PREFIX}/nvm.sh
   [[ -f $nvm_path ]] && source $nvm_path
 fi
 
@@ -80,6 +81,8 @@ npmrc(){
 }
 # initial
 npmrc_export_auth;
+
+source $(brew --prefix nvmish)/nvmish.sh
 
 reshrinkwrap_module(){
   npm uninstall --save $1 && clingwrap $1 && npm prune && npm install && npm install --save $1@$2 && clingwrap $1
