@@ -232,6 +232,10 @@ let g:UltiSnipsExpandTrigger="<M-o>"
 let g:UltiSnipsJumpForwardTrigger="<M-o>"
 let g:UltiSnipsJumpBackwardTrigger="<M-p>"
 
+" goldenview
+let g:goldenview__enable_at_startup=1
+let g:goldenview__enable_default_mapping=0
+
 " Extra Haskell hightlighting options
 let hs_highlight_boolean = 1
 let hs_highlight_types = 1
