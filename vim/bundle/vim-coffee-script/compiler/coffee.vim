@@ -1,5 +1,5 @@
 " Language:    CoffeeScript
-" Maintainer:  Mick Koch <mick@kochm.co>
+" Maintainer:  Mick Koch <kchmck@gmail.com>
 " URL:         http://github.com/kchmck/vim-coffee-script
 " License:     WTFPL
 
@@ -75,8 +75,8 @@ augroup CoffeeUpdateMakePrg
 
   " Set autocmd locally if compiler was set locally.
   if &l:makeprg =~ s:pat
-    autocmd BufWritePre,BufFilePost <buffer> call s:UpdateMakePrg()
+    autocmd BufFilePost,BufWritePost <buffer> call s:UpdateMakePrg()
   else
-    autocmd BufWritePre,BufFilePost          call s:UpdateMakePrg()
+    autocmd BufFilePost,BufWritePost          call s:UpdateMakePrg()
   endif
 augroup END
