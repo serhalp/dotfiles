@@ -1,7 +1,7 @@
 [push]
-	default = simple
+  default = simple
 [user]
-	name = Philippe Serhal
-	email = philippe@goodeggs.com
+  name = Philippe Serhal
+  email = philippe@goodeggs.com
 [credential]
-	helper = osxkeychain
+  helper = osxkeychain
