@@ -246,7 +246,16 @@ let g:UltiSnipsJumpBackwardTrigger="<M-p>"
 let g:goldenview__enable_at_startup=1
 let g:goldenview__enable_default_mapping=0
 
-" Extra Haskell hightlighting options
+" syntastic
+let g:syntastic_auto_loc_list=1 " auto open error window when errors are detected
+let g:syntastic_check_on_open=1 " check for errors on file open
+let g:syntastic_error_symbol='x'
+let g:syntastic_warning_symbol='?'
+let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_javascript_eslint_args = '--rule=no-console:0,no-warning-comments:0'
+" noremap <leader>l :SyntasticCheck<CR>:Errors<cr><C-w>j
+
+" Extra Haskell options
 let hs_highlight_boolean = 1
 let hs_highlight_types = 1
 let hs_highlight_more_types = 1
