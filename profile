@@ -98,3 +98,5 @@ install_and_shrinkwrap_dev_module(){
 ops() {
   cd ~/Projects/ops-super/apps/$1
 }
+
+source ~/.bash_aliases
