@@ -88,17 +88,9 @@ npmrc_export_auth;
 source $(brew --prefix nvmish)/nvmish.sh
 
 install_and_shrinkwrap_module(){
-  npm install --save $1@$2 && clingwrap $1
+  npm install --save $1@$2 && npm prune && npm-shrinkwrap --dev --warnOnNotSemver && npm install
 }
 
 install_and_shrinkwrap_dev_module(){
-  npm install --save-dev $1@$2 && clingwrap $1
-}
-
-reshrinkwrap_module(){
-  npm uninstall --save $1 && clingwrap $1 && npm prune && npm install && npm install --save $1@$2 && clingwrap $1
-}
-
-reshrinkwrap_dev_module(){
-  npm uninstall --save-dev $1 && clingwrap $1 && npm prune && npm install && npm install --save-dev $1@$2 && clingwrap $1
+  npm install --save-dev $1@$2 && npm prune && npm-shrinkwrap --dev --warnOnNotSemver && npm install
 }
