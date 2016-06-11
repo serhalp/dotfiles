@@ -94,3 +94,7 @@ install_and_shrinkwrap_module(){
 install_and_shrinkwrap_dev_module(){
   npm install --save-dev $1@$2 && npm prune && npm-shrinkwrap --dev --warnOnNotSemver && npm install
 }
+
+ops() {
+  cd ~/Projects/ops-super/apps/$1
+}
