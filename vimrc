@@ -157,9 +157,24 @@ noremap g= <C-w>=
 noremap <leader>w :close<CR>
 noremap <leader>W :only<CR>
 
-" Easier next and previous item in quickfix list
-noremap <M-n> :cnext<CR>
-noremap <M-p> :cprevious<CR>
+" Toggle whether next/previous item mappings are for quickfix list or location list
+command! ToggleListMappings call ToggleListMappings()
+function! ToggleListMappings()
+  if !exists('w:listMappingsMode')
+    let w:listMappingsMode = 'location'
+  endif
+
+  if w:listMappingsMode == 'quickfix'
+    let w:listMappingsMode = 'location'
+    noremap <M-n> :cnext<CR>
+    noremap <M-p> :cprevious<CR>
+  elseif w:listMappingsMode == 'location'
+    let w:listMappingsMode = 'quickfix'
+    noremap <M-n> :lnext<CR>
+    noremap <M-p> :lprevious<CR>
+  endif
+endfunction
+call ToggleListMappings()
 
 " Move a line of text around with Alt+j/Alt+k
 nmap <M-j> mz:m+<cr>`z
