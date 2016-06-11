@@ -237,11 +237,6 @@ let g:ctrlp_use_caching = 0
 " Ag
 let g:ag_highlight=1
 
-" indentLine
-" let g:indentLine_char = '⋮'
-" let g:indentLine_char = '│'
-let g:indentLine_char = ' ' " Easy way out to disable indentLine temporarily
-
 " ultisnips
 let g:UltiSnipsExpandTrigger="<M-o>"
 let g:UltiSnipsJumpForwardTrigger="<M-o>"
