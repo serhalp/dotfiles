@@ -260,6 +260,9 @@ let hs_highlight_boolean = 1
 let hs_highlight_types = 1
 let hs_highlight_more_types = 1
 
+" Extra JSX (vim-jsx) options
+let g:jsx_ext_required = 0
+
 " OS X specific options
 set clipboard=unnamed
 set macmeta
