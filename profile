@@ -11,11 +11,8 @@ export BREW_PREFIX=`brew --prefix`
 export RBENV_ROOT=/usr/local/var/rbenv
 if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
-if [[ -x $(which brew) ]]; then
-  BREW_NVM_PREFIX=`brew --prefix nvm`
-  nvm_path=${BREW_NVM_PREFIX}/nvm.sh
-  [[ -f $nvm_path ]] && source $nvm_path
-fi
+export NVM_DIR="/usr/local/opt/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
 # After nvm sets up the path
 export PATH="./node_modules/.bin:$PATH" # locally installed node binaries
