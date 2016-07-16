@@ -201,7 +201,6 @@ set nohlsearch                    " Turn off search highlighting
 set incsearch                     " Do incremental searching
 set ignorecase                    " Ignore case when searching
 set smartcase                     " Don't ignore case when pattern contains uppercase chars
-set nolazyredraw                  " Don't redraw screen while executing macros
 set magic                         " Use regular expression magic mode (see help)
 set noshowmatch                   " Turn off matching bracket highlighting
 set scrolloff=5                   " Always show at least 5 lines past the cursor
