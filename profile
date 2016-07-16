@@ -22,12 +22,8 @@ if [ -f ~/.sekret ]; then
   source ~/.sekret
 fi
 
-COMPLETION_DIR=${BREW_PREFIX}/etc/bash_completion.d
-if [ -d ${COMPLETION_DIR} ]; then
-  for file in `ls ${COMPLETION_DIR}`
-  do
-    . "${COMPLETION_DIR}/${file}"
-  done
+if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
+  . ${BREW_PREFIX}/etc/bash_completion
 fi
 
 if [ -f ~/.git-prompt.sh ]; then
