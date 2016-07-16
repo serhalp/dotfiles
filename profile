@@ -83,14 +83,6 @@ npmrc_export_auth;
 
 source $(brew --prefix nvmish)/nvmish.sh
 
-install_and_shrinkwrap_module(){
-  npm install --save $1@$2 && npm prune && npm-shrinkwrap --dev --warnOnNotSemver && npm install
-}
-
-install_and_shrinkwrap_dev_module(){
-  npm install --save-dev $1@$2 && npm prune && npm-shrinkwrap --dev --warnOnNotSemver && npm install
-}
-
 ops() {
   cd ~/Projects/ops-super/apps/$1
 }
