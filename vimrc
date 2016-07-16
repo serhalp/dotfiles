@@ -166,12 +166,12 @@ function! ToggleListMappings()
 
   if w:listMappingsMode == 'quickfix'
     let w:listMappingsMode = 'location'
-    noremap <M-n> :cnext<CR>
-    noremap <M-p> :cprevious<CR>
-  elseif w:listMappingsMode == 'location'
-    let w:listMappingsMode = 'quickfix'
     noremap <M-n> :lnext<CR>
     noremap <M-p> :lprevious<CR>
+  elseif w:listMappingsMode == 'location'
+    let w:listMappingsMode = 'quickfix'
+    noremap <M-n> :cnext<CR>
+    noremap <M-p> :cprevious<CR>
   endif
 endfunction
 call ToggleListMappings()
