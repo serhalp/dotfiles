@@ -2,6 +2,9 @@
 *.bak
 *.tmp
 
+# os x
+.DS_Store
+
 # vim
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
