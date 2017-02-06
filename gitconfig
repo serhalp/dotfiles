@@ -6,3 +6,9 @@
   email = philippe@goodeggs.com
 [credential]
   helper = osxkeychain
+[log]
+	decorate = auto
+	abbrevCommit = true
+	follow = true
+[format]
+	pretty = %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset
