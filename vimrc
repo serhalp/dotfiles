@@ -187,6 +187,8 @@ noremap <M-*> :Ag "<C-R><C-W>"<CR>
 
 " Copy current filename to system clipboard
 nnoremap <leader>f :let @* = expand("%")<CR>
+" Copy `babel-node <current filename> --watch` to system clipboard
+nnoremap <leader>tf :let @* = "babel-node " . expand("%") . " --watch"<CR>
 
 " Custom options
 "set mouse=a                       " Enable mouse in all modes
