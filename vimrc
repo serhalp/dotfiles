@@ -113,7 +113,7 @@ map Q gq
 
 " Map enter to :make! ('!' makes it not jump to the first error/warning)
 " FIXME: Find a way to only jump to errors and not warnings.
-map <C-M> :make!<CR>
+" map <C-M> :make!<CR>
 
 " Ctrl-F12 to regenerate ctags database
 " map <C-F12> :!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q --languages=c++ .<CR>
