@@ -7,10 +7,11 @@
 [credential]
   helper = osxkeychain
 [log]
-	decorate = auto
-	abbrevCommit = true
-	follow = true
+  decorate = auto
+  abbrevCommit = true
+  follow = true
 [format]
-	pretty = %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset
+  pretty = %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset
 [status]
-	short = true
+  short = true
+  branch = true
