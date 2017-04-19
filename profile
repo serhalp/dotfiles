@@ -15,7 +15,8 @@ export NVM_DIR="/usr/local/opt/nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
 # After nvm sets up the path
-export PATH="./node_modules/.bin:$PATH" # locally installed node binaries
+export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
+export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
 
 # for passwords and stuff:
 if [ -f ~/.sekret ]; then
