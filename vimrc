@@ -261,6 +261,10 @@ let hs_highlight_boolean = 1
 let hs_highlight_types = 1
 let hs_highlight_more_types = 1
 
+" Extra JavaScript (vim-javascript) options
+let g:javascript_plugin_jsdoc = 1
+let g:javascript_plugin_flow = 1
+
 " Extra JSX (vim-jsx) options
 let g:jsx_ext_required = 0
 
