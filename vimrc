@@ -118,8 +118,8 @@ map Q gq
 " Ctrl-F12 to regenerate ctags database
 " map <C-F12> :!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q --languages=c++ .<CR>
 
-" Use Ctrl-H to switch from .cpp to .h or vice versa
-map <C-H> :e %:p:s,.h$,.X123X,:s,.cpp$,.h,:s,.X123X$,.cpp,<CR>
+" Use Ctrl-H to switch from index.js(x) to test.js(x) and vice versa.
+map <C-H> :e %:p:s,test.js,X123X,:s,index.js,test.js,:s,X123X,index.js,<CR>
 
 " A few libreadline mappings
 cnoremap <C-A> <Home>
