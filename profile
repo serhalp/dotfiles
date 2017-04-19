@@ -82,8 +82,6 @@ npmrc(){
 # initial
 npmrc_export_auth;
 
-source $(brew --prefix nvmish)/nvmish.sh
-
 ops() {
   cd ~/Projects/ops-super/apps/$1
 }
