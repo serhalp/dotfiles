@@ -268,6 +268,9 @@ let g:javascript_plugin_flow = 1
 " Extra JSX (vim-jsx) options
 let g:jsx_ext_required = 0
 
+" Extra Flow (vim-flow) options
+let g:flow#autoclose = 1
+
 " OS X specific options
 set clipboard=unnamed
 set macmeta
