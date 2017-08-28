@@ -65,6 +65,8 @@ if [ -f ~/.git-prompt.sh ]; then
   }
 fi
 
+eval "$(direnv hook bash)"
+
 npmrc_export_auth(){
     # modules' .npmrc files want $NPM_AUTH, so provide it:
     export NPM_AUTH=`cat ~/.npmrc | grep _auth | sed -E 's/_auth ?= ?//'`
