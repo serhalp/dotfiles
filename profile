@@ -18,6 +18,9 @@ export NVM_DIR="/usr/local/opt/nvm"
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
 export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
 
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_REGION=$AWS_DEFAULT_REGION
+
 # for passwords and stuff:
 if [ -f ~/.sekret ]; then
   source ~/.sekret
