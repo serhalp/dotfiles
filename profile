@@ -88,7 +88,8 @@ npmrc(){
 npmrc_export_auth;
 
 ops() {
-  cd ~/Projects/ops-super/apps/$1
+  local dir_name=$(echo $1 | sed -E 's/po-/purchase-orders-/; s/f-?o-/fulfillment-options-/')
+  cd ~/Projects/ops-super/apps/$dir_name
 }
 
 what_depends_on() {
