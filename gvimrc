@@ -15,4 +15,5 @@ elseif has("gui_win32")
     set guifont=Inconsolata\ Medium\ 12
 elseif has("gui_macvim")
     set guifont=Inconsolata:h14
+    set macmeta
 endif

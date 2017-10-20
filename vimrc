@@ -275,4 +275,3 @@ let g:flow#autoclose = 1
 
 " OS X specific options
 set clipboard=unnamed
-set macmeta
