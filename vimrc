@@ -255,7 +255,7 @@ let g:syntastic_check_on_open=1 " check for errors on file open
 let g:syntastic_error_symbol='x'
 let g:syntastic_warning_symbol='?'
 let g:syntastic_javascript_checkers = ['eslint']
-let g:syntastic_javascript_eslint_args = '--rule=no-console:0,no-warning-comments:0'
+let g:syntastic_javascript_eslint_args = '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'
 " noremap <leader>l :SyntasticCheck<CR>:Errors<cr><C-w>j
 
 " Extra Haskell options
