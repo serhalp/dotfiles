@@ -1,8 +1,5 @@
 set guitablabel=%{GuiTabLabel()}  " Prefix tab labels with #s
 
-set background=dark
-colorscheme nova
-
 set guioptions-=T
 set guioptions-=r
 set guioptions-=R

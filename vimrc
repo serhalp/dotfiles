@@ -14,6 +14,8 @@ endif
 " Switch syntax highlighting on, when the terminal has colors
 if &t_Co > 2 || has("gui_running")
   syntax on
+  set background=dark
+  colorscheme nova
 endif
 
 " Only do this part when compiled with support for autocommands.
