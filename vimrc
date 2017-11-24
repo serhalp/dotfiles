@@ -240,11 +240,6 @@ let g:ctrlp_use_caching = 0
 " Ag
 let g:ag_highlight=1
 
-" ultisnips
-let g:UltiSnipsExpandTrigger="<M-o>"
-let g:UltiSnipsJumpForwardTrigger="<M-o>"
-let g:UltiSnipsJumpBackwardTrigger="<M-p>"
-
 " goldenview
 let g:goldenview__enable_at_startup=1
 let g:goldenview__enable_default_mapping=0
