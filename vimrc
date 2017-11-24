@@ -244,14 +244,15 @@ let g:ag_highlight=1
 let g:goldenview__enable_at_startup=1
 let g:goldenview__enable_default_mapping=0
 
-" syntastic
-let g:syntastic_auto_loc_list=1 " auto open error window when errors are detected
-let g:syntastic_check_on_open=1 " check for errors on file open
-let g:syntastic_error_symbol='x'
-let g:syntastic_warning_symbol='?'
-let g:syntastic_javascript_checkers = ['eslint']
-let g:syntastic_javascript_eslint_args = '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'
-" noremap <leader>l :SyntasticCheck<CR>:Errors<cr><C-w>j
+" neomake
+let g:neomake_javascript_eslint_maker = {
+    \ 'args': ['-f', 'compact', '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'],
+    \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
+    \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
+\ }
+let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
+let g:neomake_open_list = 2
+call neomake#configure#automake('rw')
 
 " Extra Haskell options
 let hs_highlight_boolean = 1
@@ -264,9 +265,6 @@ let g:javascript_plugin_flow = 1
 
 " Extra JSX (vim-jsx) options
 let g:jsx_ext_required = 0
-
-" Extra Flow (vim-flow) options
-let g:flow#autoclose = 1
 
 " OS X specific options
 set clipboard=unnamed
