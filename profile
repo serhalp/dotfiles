@@ -68,26 +68,6 @@ fi
 
 eval "$(direnv hook bash)"
 
-npmrc_export_auth(){
-    # modules' .npmrc files want $NPM_AUTH, so provide it:
-    export NPM_AUTH=`cat ~/.npmrc | grep _auth | sed -E 's/_auth ?= ?//'`
-}
-npmrc(){
-  NPM_PROFILE=$1
-  if [[ "$NPM_PROFILE" != "" ]]; then
-    test -f ~/.npmrcs/$NPM_PROFILE || { echo "No such profile '$NPM_PROFILE'."; return; }
-    rm -f ~/.npmrc 2> /dev/null
-    ln -s ~/.npmrcs/$NPM_PROFILE ~/.npmrc
-    npmrc_export_auth;
-    echo "Loaded profile $NPM_PROFILE"
-  fi
-
-  ls -al ~/.npmrc
-  echo "NPM_AUTH: $NPM_AUTH"
-}
-# initial
-npmrc_export_auth;
-
 ops() {
   local dir_name=$(echo $1 | sed -E 's/po-/purchase-orders-/; s/f-?o-/fulfillment-options-/')
   cd ~/Projects/ops-super/apps/$dir_name
