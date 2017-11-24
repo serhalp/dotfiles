@@ -11,10 +11,9 @@ export BREW_PREFIX=`brew --prefix`
 # export RBENV_ROOT=/usr/local/var/rbenv
 # if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
-export NVM_DIR="/usr/local/opt/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+eval "$(nodenv init -)"
 
-# After nvm sets up the path
+# After nodenv sets up the path
 export PATH="$HOME/.yarn/bin:$PATH"
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
 export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
