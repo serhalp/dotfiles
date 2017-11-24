@@ -77,3 +77,5 @@ what_depends_on() {
 }
 
 source ~/.bash_aliases
+
+test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
