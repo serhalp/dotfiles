@@ -193,7 +193,7 @@ nnoremap <leader>f :let @* = expand("%")<CR>
 nnoremap <leader>tf :let @* = "babel-node " . expand("%") . " --watch"<CR>
 
 " Custom options
-"set mouse=a                       " Enable mouse in all modes
+set mouse=a                       " Enable mouse in all modes
 set backspace=indent,eol,start    " Allow backspacing over everything in insert mode
 set history=500                   " Keep this many lines of command line history
 set ruler                         " Show the cursor position all the time

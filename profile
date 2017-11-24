@@ -4,7 +4,7 @@ export HISTSIZE=100000                   # big big history
 export HISTFILESIZE=100000               # big big history
 shopt -s histappend                      # append to history, don't overwrite it
 
-export EDITOR='mvim -f --nomru -c "au VimLeave * !open -a Terminal"'
+export EDITOR='nvim'
 export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export BREW_PREFIX=`brew --prefix`
