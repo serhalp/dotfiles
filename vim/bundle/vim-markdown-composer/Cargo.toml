@@ -1,0 +1,22 @@
+[package]
+name = "markdown-composer"
+version = "0.2.3"
+authors = ["Andy Russell <arussell123@gmail.com>"]
+description = "A complete solution for previewing markdown."
+
+[dependencies]
+aurelius = "0.5"
+clap = "2"
+log = "0.3.1"
+log4rs = "0.7"
+log-panics = { version = "1", features = ["with-backtrace"] }
+serde = "1"
+serde_derive = "1"
+
+serde_json = { version = "1", optional = true }
+rmp-serde = { version = "0.13", optional = true }
+
+[features]
+default = ["msgpack"]
+msgpack = ["rmp-serde"]
+json-rpc = ["serde_json"]
