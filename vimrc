@@ -255,16 +255,16 @@ let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
 let g:neomake_open_list = 2
 call neomake#configure#automake('rw')
 
-" Extra Haskell options
+" Haskell
 let hs_highlight_boolean = 1
 let hs_highlight_types = 1
 let hs_highlight_more_types = 1
 
-" Extra JavaScript (vim-javascript) options
+" vim-javascript
 let g:javascript_plugin_jsdoc = 1
 let g:javascript_plugin_flow = 1
 
-" Extra JSX (vim-jsx) options
+" vim-jsx
 let g:jsx_ext_required = 0
 
 " OS X specific options
