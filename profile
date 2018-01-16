@@ -11,20 +11,22 @@ export BREW_PREFIX=`brew --prefix`
 # export RBENV_ROOT=/usr/local/var/rbenv
 # if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
+if [ -f ~/.sekret ]; then
+  source ~/.sekret
+fi
+
 eval "$(nodenv init -)"
 
 # After nodenv sets up the path
-export PATH="$HOME/.yarn/bin:$PATH"
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
-export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
+export PATH="$HOME/.yarn/bin:$PATH" # lol I dunno
+export PATH="$HOME/.config/yarn/global/node_modules/.bin:$PATH" # globally installed yarn node module binaries
+export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries, take 2 lol I dunno
 
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=$AWS_DEFAULT_REGION
 
-# for passwords and stuff:
-if [ -f ~/.sekret ]; then
-  source ~/.sekret
-fi
+source ~/.docker-machine.sh
 
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
@@ -79,3 +81,5 @@ what_depends_on() {
 source ~/.bash_aliases
 
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
+
+export PATH="$HOME/.cargo/bin:$PATH"
