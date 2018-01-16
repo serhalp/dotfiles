@@ -226,6 +226,7 @@ set list listchars=               " Show whitespace characters explicitly.
 set hidden                        " Allow edited buffers to exist behind the scenes.
 set noequalalways                 " Disable automatic window resizing on close and split.
 set keywordprg=npm\ docs          " Open docs for NPM module under cursor with `K`.
+set title                         " Set terminal title to open buffer file path.
 
 " Highlight current line and column
 set cursorline
