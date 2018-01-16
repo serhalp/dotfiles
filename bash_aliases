@@ -3,7 +3,9 @@ __git_complete g __git_main
 
 alias n="npm"
 
-alias pr="hub pull-request | xargs open"
+alias ag="ag --hidden"
+
+alias pr="hub pull-request -o"
 
 alias dev="aws-vault exec --session-ttl=24h --assume-role-ttl=1h dev --"
 alias prod="aws-vault exec --session-ttl=24h --assume-role-ttl=1h prod --"
