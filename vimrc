@@ -33,7 +33,7 @@ if has("autocmd")
   au!
 
   " For all text files set 'textwidth' to 78 characters.
-  autocmd FileType text setlocal textwidth=78
+  autocmd FileType text setlocal textwidth=90
 
   " When vimrc is edited, reload it
   autocmd! bufwritepost .vimrc source ~/.vimrc
