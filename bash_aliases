@@ -4,6 +4,7 @@ __git_complete g __git_main
 alias n="npm"
 
 alias ag="ag --hidden"
+alias agnt="ag --ignore='*test*' --ignore='*unit*' --ignore='*spec*' --ignore='*e2e*'"
 
 alias pr="hub pull-request -o"
 
