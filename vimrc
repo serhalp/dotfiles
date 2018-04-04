@@ -191,6 +191,8 @@ noremap <M-*> :Ag "<C-R><C-W>"<CR>
 nnoremap <leader>f :let @* = expand("%")<CR>
 " Copy `babel-node <current filename> --watch` to system clipboard
 nnoremap <leader>tf :let @* = "babel-node " . expand("%") . " --watch"<CR>
+" Copy `yarn test:mocha:single --watch <current filename>` to system clipboard
+nnoremap <leader>tnf :let @* = "yarn test:mocha:single " . " --watch " . expand("%")<CR>
 
 " Custom options
 set mouse=a                       " Enable mouse in all modes
