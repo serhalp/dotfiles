@@ -257,6 +257,9 @@ let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
 let g:neomake_open_list = 2
 call neomake#configure#automake('rw')
 
+" neoformat
+autocmd BufWritePre,InsertLeave *.js* Neoformat
+
 " Haskell
 let hs_highlight_boolean = 1
 let hs_highlight_types = 1
