@@ -2,11 +2,14 @@ alias g="git"
 __git_complete g __git_main
 
 alias n="npm"
+alias y="yarn"
 
 alias ag="ag --hidden"
 alias agnt="ag --ignore='*test*' --ignore='*unit*' --ignore='*spec*' --ignore='*e2e*'"
 
 alias pr="hub pull-request -o"
+
+alias yesand="(test \$? -eq 0) &&"
 
 alias dev="aws-vault exec --session-ttl=24h --assume-role-ttl=1h dev --"
 alias prod="aws-vault exec --session-ttl=24h --assume-role-ttl=1h prod --"
