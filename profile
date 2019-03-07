@@ -26,9 +26,6 @@ export PATH="$PATH:`yarn global bin`" # globally installed yarn node module bina
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=$AWS_DEFAULT_REGION
 
-source ~/.docker-machine.sh
-eval $(docker-machine env default)
-
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
 fi
