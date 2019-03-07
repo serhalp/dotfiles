@@ -81,3 +81,5 @@ source ~/.bash_aliases
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
 
 export PATH="$HOME/.cargo/bin:$PATH"
+
+export NODE_EXTRA_CA_CERTS="$HOME/Library/Application Support/mkcert/rootCA.pem"
