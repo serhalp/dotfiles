@@ -17,3 +17,5 @@
   branch = true
 [commit]
   verbose = true
+[alias]
+	co = checkout
