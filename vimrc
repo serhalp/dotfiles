@@ -234,6 +234,12 @@ set cursorcolumn
 highlight CursorLine guibg=#333333
 highlight CursorColumn guibg=#333333
 
+" OS X specific options
+" TODO conditionally do this for OS X
+set clipboard=unnamed
+
+" --- PLUGIN CONFIGURATION
+
 " CtrlP
 let g:ctrlp_user_command = ['.git/', 'git ls-files -co --exclude-standard %s']
 let g:ctrlp_use_caching = 0
@@ -286,19 +292,19 @@ let g:javascript_plugin_flow = 1
 " vim-jsx
 let g:jsx_ext_required = 0
 
-" OS X specific options
-set clipboard=unnamed
+" vim-test
+let test#runners = {'JavaScript': ['GoodeggsTest']}
 
+" LanguageClient
 let g:LanguageClient_serverCommands = {
     \ 'javascript':     ['flow-language-server', '--stdio', '--try-flow-bin'],
     \ 'javascript.jsx': ['flow-language-server', '--stdio', '--try-flow-bin'],
+    \ 'typescript':     ['typescript-language-server', '--stdio'],
+    \ 'typescript.tsx': ['typescript-language-server', '--stdio'],
     \ }
-
 let g:LanguageClient_changeThrottle = 0.50
 let g:LanguageClient_hoverPreview = "never"
-
-" Don't let languageclient do any linting
-let g:LanguageClient_diagnosticsEnable = 0
-
+let g:LanguageClient_diagnosticsEnable = 0 " Don't let languageclient do any linting
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+nnoremap <silent> gr :call LanguageClient_textDocument_references()<CR>
