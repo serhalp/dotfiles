@@ -266,7 +266,7 @@ let g:neomake_typescript_enabled_makers = ['eslint', 'tsc']
 let g:neomake_typescriptreact_enabled_makers = ['eslint', 'tsc']
 let g:neomake_eslint_project_maker = {
     \ 'exe': 'yarn',
-    \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0'],
+    \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0,mocha/no-exclusive-tests:0'],
     \ 'append_file': 0,
     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
     \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
