@@ -3,3 +3,9 @@
 .*.swo
 .git/
 flow-typed/
+
+# shouldn't be necessary but work around bugs in ag's interpreting of .gitignore :(
+node_modules/
+coverage/
+build/
+.nyc_output/
