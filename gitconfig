@@ -1,6 +1,8 @@
 [push]
   default = simple
   followTags = true
+[rebase]
+  autosquash = true
 [user]
   name = Philippe Serhal
   email = philippe@goodeggs.com
