@@ -72,6 +72,10 @@ ops() {
   cd ~/Projects/ops-super/apps/$dir_name
 }
 
+p() {
+  cd ~/Projects/$1
+}
+
 what_depends_on() {
   find node_modules -name 'package.json' -exec sh -c "jq -e '.dependencies | has(\""$1"\")' {} > /dev/null" \; -print
 }
