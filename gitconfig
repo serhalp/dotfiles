@@ -20,4 +20,4 @@
 [commit]
   verbose = true
 [alias]
-	co = checkout
+  co = checkout
