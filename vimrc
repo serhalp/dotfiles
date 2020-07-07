@@ -297,10 +297,11 @@ let test#runners = {'JavaScript': ['GoodeggsTest']}
 
 " LanguageClient
 let g:LanguageClient_serverCommands = {
-    \ 'javascript':     ['flow-language-server', '--stdio', '--try-flow-bin'],
-    \ 'javascript.jsx': ['flow-language-server', '--stdio', '--try-flow-bin'],
-    \ 'typescript':     ['typescript-language-server', '--stdio'],
-    \ 'typescript.tsx': ['typescript-language-server', '--stdio'],
+    \ 'javascript':      ['flow-language-server', '--stdio', '--try-flow-bin'],
+    \ 'javascript.jsx':  ['flow-language-server', '--stdio', '--try-flow-bin'],
+    \ 'typescript':      ['typescript-language-server', '--stdio'],
+    \ 'typescriptreact': ['typescript-language-server', '--stdio'],
+    \ 'typescript.tsx':  ['typescript-language-server', '--stdio'],
     \ }
 let g:LanguageClient_changeThrottle = 0.50
 let g:LanguageClient_hoverPreview = "never"
