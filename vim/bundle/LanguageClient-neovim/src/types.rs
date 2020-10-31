@@ -1,115 +1,166 @@
-use super::*;
+use crate::logger::Logger;
+use crate::rpcclient::RpcClient;
+use crate::sign::Sign;
+use crate::{
+    language_client::LanguageClient,
+    utils::{code_action_kind_as_str, ToUrl},
+    vim::Vim,
+};
+use anyhow::{anyhow, Result};
+use jsonrpc_core::Params;
+use log::*;
+use lsp_types::{
+    CodeAction, CodeLens, Command, CompletionItem, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, DocumentHighlightKind, FileChangeType, FileEvent, Hover, HoverContents,
+    InsertTextFormat, Location, MarkedString, MarkupContent, MarkupKind, MessageType,
+    NumberOrString, Registration, SemanticHighlightingInformation, SymbolInformation,
+    TextDocumentItem, TextDocumentPositionParams, TraceOption, Url, WorkspaceEdit,
+};
+use maplit::hashmap;
+use pathdiff::diff_paths;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{
+    collections::{BTreeMap, HashMap},
+    io::{BufRead, BufReader, BufWriter, Write},
+    net::TcpStream,
+    path::{Path, PathBuf},
+    process::{ChildStdin, ChildStdout},
+    str::FromStr,
+    sync::{mpsc, Arc},
+    time::{Duration, Instant},
+};
+use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug, Fail)]
-pub enum LCError {
-    #[fail(
-        display = "Language server is not running for: {}",
-        languageId
-    )]
-    NoLanguageServer { languageId: String },
+#[derive(Debug, Error, PartialEq)]
+pub enum LSError {
+    #[error("Content Modified")]
+    ContentModified,
 }
 
-// Extensions.
-pub const REQUEST__GetState: &str = "languageClient/getState";
-pub const REQUEST__IsAlive: &str = "languageClient/isAlive";
-pub const REQUEST__StartServer: &str = "languageClient/startServer";
-pub const REQUEST__RegisterServerCommands: &str = "languageClient/registerServerCommands";
-pub const REQUEST__OmniComplete: &str = "languageClient/omniComplete";
-pub const REQUEST__SetLoggingLevel: &str = "languageClient/setLoggingLevel";
-pub const REQUEST__SetDiagnosticsList: &str = "languageClient/setDiagnosticsList";
-pub const REQUEST__RegisterHandlers: &str = "languageClient/registerHandlers";
-pub const REQUEST__NCMRefresh: &str = "LanguageClient_NCMRefresh";
-pub const REQUEST__NCM2OnComplete: &str = "LanguageClient_NCM2OnComplete";
-pub const REQUEST__ExplainErrorAtPoint: &str = "languageClient/explainErrorAtPoint";
-pub const REQUEST__FindLocations: &str = "languageClient/findLocations";
-pub const REQUEST__DebugInfo: &str = "languageClient/debugInfo";
-pub const NOTIFICATION__HandleBufNewFile: &str = "languageClient/handleBufNewFile";
-pub const NOTIFICATION__HandleBufReadPost: &str = "languageClient/handleBufReadPost";
-pub const NOTIFICATION__HandleTextChanged: &str = "languageClient/handleTextChanged";
-pub const NOTIFICATION__HandleBufWritePost: &str = "languageClient/handleBufWritePost";
-pub const NOTIFICATION__HandleBufDelete: &str = "languageClient/handleBufDelete";
-pub const NOTIFICATION__HandleCursorMoved: &str = "languageClient/handleCursorMoved";
-pub const NOTIFICATION__HandleCompleteDone: &str = "languageClient/handleCompleteDone";
-pub const NOTIFICATION__FZFSinkLocation: &str = "LanguageClient_FZFSinkLocation";
-pub const NOTIFICATION__FZFSinkCommand: &str = "LanguageClient_FZFSinkCommand";
-pub const NOTIFICATION__ServerExited: &str = "$languageClient/serverExited";
-pub const NOTIFICATION__ClearDocumentHighlight: &str = "languageClient/clearDocumentHighlight";
+#[derive(Debug, Error)]
+pub enum LCError {
+    #[error("No language server commands found for filetype: {}", language_id)]
+    NoServerCommands { language_id: String },
+    #[error("Language server is not running for: {}", language_id)]
+    ServerNotRunning { language_id: String },
+}
 
-// Extensions by language servers.
-pub const REQUEST__RustImplementations: &str = "rustDocument/implementations";
-pub const NOTIFICATION__RustBeginBuild: &str = "rustDocument/beginBuild";
-pub const NOTIFICATION__RustDiagnosticsBegin: &str = "rustDocument/diagnosticsBegin";
-pub const NOTIFICATION__RustDiagnosticsEnd: &str = "rustDocument/diagnosticsEnd";
-// This is an RLS extension but the name is general enough to assume it might be implemented by
-// other language servers or planned for inclusion in the base protocol.
-pub const NOTIFICATION__WindowProgress: &str = "window/progress";
-pub const NOTIFICATION__LanguageStatus: &str = "language/status";
-pub const REQUEST__ClassFileContents: &str = "java/classFileContents";
+pub const REQUEST_GET_STATE: &str = "languageClient/getState";
+pub const REQUEST_IS_ALIVE: &str = "languageClient/isAlive";
+pub const REQUEST_START_SERVER: &str = "languageClient/startServer";
+pub const REQUEST_REGISTER_SERVER_COMMANDS: &str = "languageClient/registerServerCommands";
+pub const REQUEST_OMNI_COMPLETE: &str = "languageClient/omniComplete";
+pub const REQUEST_SET_LOGGING_LEVEL: &str = "languageClient/setLoggingLevel";
+pub const REQUEST_SET_DIAGNOSTICS_LIST: &str = "languageClient/setDiagnosticsList";
+pub const REQUEST_REGISTER_HANDLERS: &str = "languageClient/registerHandlers";
+pub const REQUEST_NCM_REFRESH: &str = "LanguageClient_NCMRefresh";
+pub const REQUEST_NCM2_ON_COMPLETE: &str = "LanguageClient_NCM2OnComplete";
+pub const REQUEST_EXPLAIN_ERROR_AT_POINT: &str = "languageClient/explainErrorAtPoint";
+pub const REQUEST_FIND_LOCATIONS: &str = "languageClient/findLocations";
+pub const REQUEST_DEBUG_INFO: &str = "languageClient/debugInfo";
+pub const REQUEST_CODE_LENS_ACTION: &str = "LanguageClient/handleCodeLensAction";
+pub const REQUEST_SEMANTIC_SCOPES: &str = "languageClient/semanticScopes";
+pub const REQUEST_SHOW_SEMANTIC_HL_SYMBOLS: &str = "languageClient/showSemanticHighlightSymbols";
+pub const REQUEST_CLASS_FILE_CONTENTS: &str = "java/classFileContents";
 
-pub const CommandsClient: &[&str] = &["java.apply.workspaceEdit"];
+pub const NOTIFICATION_HANDLE_BUF_NEW_FILE: &str = "languageClient/handleBufNewFile";
+pub const NOTIFICATION_HANDLE_BUF_ENTER: &str = "languageClient/handleBufEnter";
+pub const NOTIFICATION_HANDLE_FILE_TYPE: &str = "languageClient/handleFileType";
+pub const NOTIFICATION_HANDLE_TEXT_CHANGED: &str = "languageClient/handleTextChanged";
+pub const NOTIFICATION_HANDLE_BUF_WRITE_POST: &str = "languageClient/handleBufWritePost";
+pub const NOTIFICATION_HANDLE_BUF_DELETE: &str = "languageClient/handleBufDelete";
+pub const NOTIFICATION_HANDLE_CURSOR_MOVED: &str = "languageClient/handleCursorMoved";
+pub const NOTIFICATION_HANDLE_COMPLETE_DONE: &str = "languageClient/handleCompleteDone";
+pub const NOTIFICATION_FZF_SINK_LOCATION: &str = "LanguageClient_FZFSinkLocation";
+pub const NOTIFICATION_FZF_SINK_COMMAND: &str = "LanguageClient_FZFSinkCommand";
+pub const NOTIFICATION_SERVER_EXITED: &str = "$languageClient/serverExited";
+pub const NOTIFICATION_CLEAR_DOCUMENT_HL: &str = "languageClient/clearDocumentHighlight";
+pub const NOTIFICATION_RUST_BEGIN_BUILD: &str = "rustDocument/beginBuild";
+pub const NOTIFICATION_RUST_DIAGNOSTICS_BEGIN: &str = "rustDocument/diagnosticsBegin";
+pub const NOTIFICATION_RUST_DIAGNOSTICS_END: &str = "rustDocument/diagnosticsEnd";
+pub const NOTIFICATION_WINDOW_PROGRESS: &str = "window/progress";
+pub const NOTIFICATION_LANGUAGE_STATUS: &str = "language/status";
 
-// Vim variable names
-pub const VIM__ServerStatus: &str = "g:LanguageClient_serverStatus";
-pub const VIM__ServerStatusMessage: &str = "g:LanguageClient_serverStatusMessage";
+pub const VIM_SERVER_STATUS: &str = "g:LanguageClient_serverStatus";
+pub const VIM_SERVER_STATUS_MESSAGE: &str = "g:LanguageClient_serverStatusMessage";
+pub const VIM_IS_SERVER_RUNNING: &str = "LanguageClient_isServerRunning";
+pub const VIM_STATUS_LINE_DIAGNOSTICS_COUNTS: &str = "LanguageClient_statusLineDiagnosticsCounts";
 
 /// Thread safe read.
-pub trait SyncRead: BufRead + Sync + Send + Debug {}
+pub trait SyncRead: BufRead + Sync + Send + std::fmt::Debug {}
 impl SyncRead for BufReader<ChildStdout> {}
 impl SyncRead for BufReader<TcpStream> {}
 
 /// Thread safe write.
-pub trait SyncWrite: Write + Sync + Send + Debug {}
+pub trait SyncWrite: Write + Sync + Send + std::fmt::Debug {}
 impl SyncWrite for BufWriter<ChildStdin> {}
 impl SyncWrite for BufWriter<TcpStream> {}
 
+/// Rpc message id.
 pub type Id = u64;
+/// Language server id.
+pub type LanguageId = Option<String>;
+/// Buffer id/handle.
+pub type Bufnr = i64;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
-    MethodCall(Option<String>, rpc::MethodCall),
-    Notification(Option<String>, rpc::Notification),
-    Output(rpc::Output),
+    MethodCall(LanguageId, jsonrpc_core::MethodCall),
+    Notification(LanguageId, jsonrpc_core::Notification),
+    Output(jsonrpc_core::Output),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Call {
-    MethodCall(Option<String>, rpc::MethodCall),
-    Notification(Option<String>, rpc::Notification),
+    MethodCall(LanguageId, jsonrpc_core::MethodCall),
+    Notification(LanguageId, jsonrpc_core::Notification),
 }
 
 #[derive(Clone, Copy, Serialize)]
 pub struct HighlightSource {
-    pub buffer: u64,
+    pub buffer: Bufnr,
     pub source: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum UseVirtualText {
+    Diagnostics,
+    CodeLens,
+    All,
+    No,
 }
 
 #[derive(Serialize)]
 pub struct State {
     // Program state.
-    pub id: Id,
     #[serde(skip_serializing)]
-    pub tx: Sender<Message>,
-    #[serde(skip_serializing)]
-    pub rx: Receiver<Message>,
-    pub pending_calls: VecDeque<Call>,
-    pub pending_outputs: HashMap<Id, rpc::Output>,
+    pub tx: crossbeam::channel::Sender<Call>,
 
-    pub child_ids: HashMap<String, u32>,
     #[serde(skip_serializing)]
-    pub writers: HashMap<String, Box<dyn SyncWrite>>,
+    pub clients: HashMap<LanguageId, Arc<RpcClient>>,
+
+    #[serde(skip_serializing)]
+    pub vim: Vim,
+
     pub capabilities: HashMap<String, Value>,
     pub registrations: Vec<Registration>,
     pub roots: HashMap<String, String>,
     pub text_documents: HashMap<String, TextDocumentItem>,
     pub text_documents_metadata: HashMap<String, TextDocumentItemMetadata>,
+    pub semantic_scopes: HashMap<String, Vec<Vec<String>>>,
+    pub semantic_scope_to_hl_group_table: HashMap<String, Vec<Option<String>>>,
+    // filename => semantic highlight state
+    pub semantic_highlights: HashMap<String, TextDocumentSemanticHighlightState>,
     // filename => diagnostics.
     pub diagnostics: HashMap<String, Vec<Diagnostic>>,
+    // filename => codeLens.
+    pub code_lens: HashMap<String, Vec<CodeLens>>,
     #[serde(skip_serializing)]
     pub line_diagnostics: HashMap<(String, u64), String>,
-    pub signs: HashMap<String, Vec<Sign>>,
-    pub signs_placed: HashMap<String, Vec<Sign>>,
+    /// Active signs.
+    pub signs: HashMap<String, BTreeMap<u64, Sign>>,
+    pub namespace_ids: HashMap<String, i64>,
     pub highlight_source: Option<u64>,
     pub highlights: HashMap<String, Vec<Highlight>>,
     pub highlights_placed: HashMap<String, Vec<Highlight>>,
@@ -120,63 +171,81 @@ pub struct State {
     #[serde(skip_serializing)]
     pub watchers: HashMap<String, notify::RecommendedWatcher>,
     #[serde(skip_serializing)]
-    pub watcher_rxs: HashMap<String, Receiver<notify::DebouncedEvent>>,
+    pub watcher_rxs: HashMap<String, mpsc::Receiver<notify::DebouncedEvent>>,
 
     pub is_nvim: bool,
     pub last_cursor_line: u64,
     pub last_line_diagnostic: String,
-    pub stashed_codeAction_commands: Vec<Command>,
+    pub stashed_code_action_actions: Vec<CodeAction>,
 
     // User settings.
-    pub serverCommands: HashMap<String, Vec<String>>,
-    pub autoStart: bool,
-    pub selectionUI: SelectionUI,
+    pub server_commands: HashMap<String, Vec<String>>,
+    // languageId => (scope_regex => highlight group)
+    pub semantic_highlight_maps: HashMap<String, HashMap<String, String>>,
+    pub semantic_scope_separator: String,
+    pub auto_start: bool,
+    pub selection_ui: SelectionUI,
+    pub selection_ui_auto_open: bool,
     pub trace: Option<TraceOption>,
-    pub diagnosticsEnable: bool,
-    pub diagnosticsList: DiagnosticsList,
-    pub diagnosticsDisplay: HashMap<u64, DiagnosticsDisplay>,
-    pub diagnosticsSignsMax: Option<u64>,
-    pub documentHighlightDisplay: HashMap<u64, DocumentHighlightDisplay>,
-    pub windowLogMessageLevel: MessageType,
-    pub settingsPath: String,
-    pub loadSettings: bool,
-    pub rootMarkers: Option<RootMarkers>,
+    pub diagnostics_enable: bool,
+    pub diagnostics_list: DiagnosticsList,
+    pub diagnostics_display: HashMap<u64, DiagnosticsDisplay>,
+    pub diagnostics_signs_max: Option<usize>,
+    pub diagnostics_max_severity: DiagnosticSeverity,
+    pub document_highlight_display: HashMap<u64, DocumentHighlightDisplay>,
+    pub window_log_message_level: MessageType,
+    pub settings_path: Vec<String>,
+    pub load_settings: bool,
+    pub root_markers: Option<RootMarkers>,
     pub change_throttle: Option<Duration>,
     pub wait_output_timeout: Duration,
-    pub hoverPreview: HoverPreviewOption,
-    pub completionPreferTextEdit: bool,
+    pub hover_preview: HoverPreviewOption,
+    pub completion_prefer_text_edit: bool,
+    pub apply_completion_additional_text_edits: bool,
+    pub use_virtual_text: UseVirtualText,
+    pub hide_virtual_texts_on_insert: bool,
+    pub echo_project_root: bool,
 
-    pub loggingFile: Option<String>,
-    pub loggingLevel: log::LevelFilter,
-    pub serverStderr: Option<String>,
-    #[serde(skip_serializing)]
-    pub logger: log4rs::Handle,
+    pub server_stderr: Option<String>,
+    pub logger: Logger,
+    pub preferred_markup_kind: Option<Vec<MarkupKind>>,
 }
 
 impl State {
-    pub fn new() -> Result<State> {
-        let logger = logger::init()?;
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(tx: crossbeam::channel::Sender<Call>) -> Result<Self> {
+        let logger = Logger::new()?;
 
-        let (tx, rx) = channel();
+        let client = Arc::new(RpcClient::new(
+            None,
+            BufReader::new(std::io::stdin()),
+            BufWriter::new(std::io::stdout()),
+            None,
+            tx.clone(),
+        )?);
 
-        Ok(State {
-            id: 0,
+        Ok(Self {
             tx,
-            rx,
-            pending_calls: VecDeque::new(),
-            pending_outputs: HashMap::new(),
 
-            child_ids: HashMap::new(),
-            writers: HashMap::new(),
+            clients: hashmap! {
+                None => client.clone(),
+            },
+
+            vim: Vim::new(client),
+
             capabilities: HashMap::new(),
             registrations: vec![],
             roots: HashMap::new(),
             text_documents: HashMap::new(),
             text_documents_metadata: HashMap::new(),
+            semantic_scopes: HashMap::new(),
+            semantic_scope_to_hl_group_table: HashMap::new(),
+            semantic_highlights: HashMap::new(),
+            code_lens: HashMap::new(),
             diagnostics: HashMap::new(),
             line_diagnostics: HashMap::new(),
             signs: HashMap::new(),
-            signs_placed: HashMap::new(),
+            namespace_ids: HashMap::new(),
             highlight_source: None,
             highlights: HashMap::new(),
             highlights_placed: HashMap::new(),
@@ -189,37 +258,44 @@ impl State {
             is_nvim: false,
             last_cursor_line: 0,
             last_line_diagnostic: " ".into(),
-            stashed_codeAction_commands: vec![],
+            stashed_code_action_actions: vec![],
 
-            serverCommands: HashMap::new(),
-            autoStart: true,
-            selectionUI: SelectionUI::LocationList,
+            server_commands: HashMap::new(),
+            semantic_highlight_maps: HashMap::new(),
+            semantic_scope_separator: ":".into(),
+            auto_start: true,
+            selection_ui: SelectionUI::LocationList,
+            selection_ui_auto_open: true,
             trace: None,
-            diagnosticsEnable: true,
-            diagnosticsList: DiagnosticsList::Quickfix,
-            diagnosticsDisplay: DiagnosticsDisplay::default(),
-            diagnosticsSignsMax: None,
-            documentHighlightDisplay: DocumentHighlightDisplay::default(),
-            windowLogMessageLevel: MessageType::Warning,
-            settingsPath: format!(".vim{}settings.json", std::path::MAIN_SEPARATOR),
-            loadSettings: false,
-            rootMarkers: None,
+            diagnostics_enable: true,
+            diagnostics_list: DiagnosticsList::Quickfix,
+            diagnostics_display: DiagnosticsDisplay::default(),
+            diagnostics_signs_max: None,
+            diagnostics_max_severity: DiagnosticSeverity::Hint,
+            document_highlight_display: DocumentHighlightDisplay::default(),
+            window_log_message_level: MessageType::Warning,
+            settings_path: vec![format!(".vim{}settings.json", std::path::MAIN_SEPARATOR)],
+            load_settings: false,
+            root_markers: None,
             change_throttle: None,
             wait_output_timeout: Duration::from_secs(10),
-            hoverPreview: HoverPreviewOption::default(),
-            completionPreferTextEdit: false,
-            loggingFile: None,
-            loggingLevel: log::LevelFilter::Warn,
-            serverStderr: None,
+            hover_preview: HoverPreviewOption::default(),
+            completion_prefer_text_edit: false,
+            apply_completion_additional_text_edits: true,
+            use_virtual_text: UseVirtualText::All,
+            hide_virtual_texts_on_insert: true,
+            echo_project_root: true,
+            server_stderr: None,
+            preferred_markup_kind: None,
 
             logger,
         })
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SelectionUI {
-    FZF,
+    Funcref,
     Quickfix,
     LocationList,
 }
@@ -231,19 +307,36 @@ impl Default for SelectionUI {
 }
 
 impl FromStr for SelectionUI {
-    type Err = Error;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
-            "FZF" => Ok(SelectionUI::FZF),
+            "FUNCREF" | "FZF" => Ok(SelectionUI::Funcref),
             "QUICKFIX" => Ok(SelectionUI::Quickfix),
             "LOCATIONLIST" | "LOCATION-LIST" => Ok(SelectionUI::LocationList),
-            _ => bail!("Invalid option for LanguageClient_selectionUI: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_selectionUI: {}",
+                s
+            )),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+pub enum LCNamespace {
+    VirtualText,
+    SemanticHighlight,
+}
+
+impl LCNamespace {
+    pub fn name(&self) -> String {
+        match self {
+            LCNamespace::VirtualText => "LanguageClient_VirtualText".into(),
+            LCNamespace::SemanticHighlight => "LanguageClient_SemanticHighlight".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum HoverPreviewOption {
     Always,
     Auto,
@@ -257,19 +350,22 @@ impl Default for HoverPreviewOption {
 }
 
 impl FromStr for HoverPreviewOption {
-    type Err = Error;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "ALWAYS" => Ok(HoverPreviewOption::Always),
             "AUTO" => Ok(HoverPreviewOption::Auto),
             "NEVER" => Ok(HoverPreviewOption::Never),
-            _ => bail!("Invalid option for LanguageClient_hoverPreview: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_hoverPreview: {}",
+                s
+            )),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DiagnosticsList {
     Quickfix,
     Location,
@@ -283,94 +379,75 @@ impl Default for DiagnosticsList {
 }
 
 impl FromStr for DiagnosticsList {
-    type Err = Error;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_ascii_uppercase().as_str() {
             "QUICKFIX" => Ok(DiagnosticsList::Quickfix),
             "LOCATION" => Ok(DiagnosticsList::Location),
             "DISABLED" => Ok(DiagnosticsList::Disabled),
-            _ => bail!("Invalid option for LanguageClient_diagnosticsList: {}", s),
+            _ => Err(anyhow!(
+                "Invalid option for LanguageClient_diagnosticsList: {}",
+                s
+            )),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiagnosticsDisplay {
     pub name: String,
     pub texthl: String,
-    pub signText: String,
-    pub signTexthl: String,
+    pub sign_text: String,
+    pub sign_texthl: String,
+    pub virtual_texthl: String,
 }
 
 impl DiagnosticsDisplay {
-    pub fn default() -> HashMap<u64, DiagnosticsDisplay> {
+    pub fn default() -> HashMap<u64, Self> {
         let mut map = HashMap::new();
         map.insert(
             1,
-            DiagnosticsDisplay {
+            Self {
                 name: "Error".to_owned(),
                 texthl: "ALEError".to_owned(),
-                signText: "✖".to_owned(),
-                signTexthl: "ALEErrorSign".to_owned(),
+                sign_text: "✖".to_owned(),
+                sign_texthl: "ALEErrorSign".to_owned(),
+                virtual_texthl: "Error".to_owned(),
             },
         );
         map.insert(
             2,
-            DiagnosticsDisplay {
+            Self {
                 name: "Warning".to_owned(),
                 texthl: "ALEWarning".to_owned(),
-                signText: "⚠".to_owned(),
-                signTexthl: "ALEWarningSign".to_owned(),
+                sign_text: "⚠".to_owned(),
+                sign_texthl: "ALEWarningSign".to_owned(),
+                virtual_texthl: "Todo".to_owned(),
             },
         );
         map.insert(
             3,
-            DiagnosticsDisplay {
+            Self {
                 name: "Information".to_owned(),
                 texthl: "ALEInfo".to_owned(),
-                signText: "ℹ".to_owned(),
-                signTexthl: "ALEInfoSign".to_owned(),
+                sign_text: "ℹ".to_owned(),
+                sign_texthl: "ALEInfoSign".to_owned(),
+                virtual_texthl: "Todo".to_owned(),
             },
         );
         map.insert(
             4,
-            DiagnosticsDisplay {
+            Self {
                 name: "Hint".to_owned(),
                 texthl: "ALEInfo".to_owned(),
-                signText: "➤".to_owned(),
-                signTexthl: "ALEInfoSign".to_owned(),
+                sign_text: "➤".to_owned(),
+                sign_texthl: "ALEInfoSign".to_owned(),
+                virtual_texthl: "Todo".to_owned(),
             },
         );
         map
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Sign {
-    pub id: u64,
-    pub line: u64,
-    pub text: String,
-    pub severity: Option<DiagnosticSeverity>,
-}
-
-impl Sign {
-    pub fn new(line: u64, text: String, severity: Option<DiagnosticSeverity>) -> Sign {
-        Sign {
-            id: Self::get_id(line, severity),
-            line,
-            text,
-            severity,
-        }
-    }
-
-    fn get_id(line: u64, severity: Option<DiagnosticSeverity>) -> u64 {
-        let base_id = 75_000;
-        base_id + (line - 1) * 4 + severity
-            .unwrap_or(DiagnosticSeverity::Hint)
-            .to_int()
-            .unwrap_or(4)
-            - 1
     }
 }
 
@@ -381,25 +458,25 @@ pub struct DocumentHighlightDisplay {
 }
 
 impl DocumentHighlightDisplay {
-    pub fn default() -> HashMap<u64, DocumentHighlightDisplay> {
+    pub fn default() -> HashMap<u64, Self> {
         let mut map = HashMap::new();
         map.insert(
             1,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Text".to_owned(),
                 texthl: "SpellCap".to_owned(),
             },
         );
         map.insert(
             2,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Read".to_owned(),
                 texthl: "SpellLocal".to_owned(),
             },
         );
         map.insert(
             3,
-            DocumentHighlightDisplay {
+            Self {
                 name: "Write".to_owned(),
                 texthl: "SpellRare".to_owned(),
             },
@@ -408,32 +485,11 @@ impl DocumentHighlightDisplay {
     }
 }
 
-impl std::cmp::Ord for Sign {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.id.cmp(&other.id)
-    }
-}
-
-impl std::cmp::PartialOrd for Sign {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl std::cmp::PartialEq for Sign {
-    fn eq(&self, other: &Self) -> bool {
-        // Quick check whether sign should be updated.
-        self.text == other.text && self.severity == other.severity
-    }
-}
-
-impl std::cmp::Eq for Sign {}
-
-use std::hash::{Hash, Hasher};
-impl Hash for Sign {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextDocumentSemanticHighlightState {
+    pub last_version: Option<i64>,
+    pub symbols: Vec<SemanticHighlightingInformation>,
+    pub highlights: Option<Vec<Highlight>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -450,6 +506,12 @@ impl PartialEq for Highlight {
         // Quick check whether highlight should be updated.
         self.text == other.text && self.group == other.group
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClearNamespace {
+    pub line_start: u64,
+    pub line_end: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -530,8 +592,10 @@ pub struct VimCompleteItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dup: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[deprecated(note = "use `user_data` instead")]
     pub snippet: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[deprecated(note = "use `user_data` instead")]
     pub is_snippet: Option<bool>,
     // NOTE: `user_data` can only be string in vim. So cannot specify concrete type here.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -542,46 +606,71 @@ pub struct VimCompleteItem {
 pub struct VimCompleteItemUserData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lspitem: Option<CompletionItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
 }
 
 impl VimCompleteItem {
-    pub fn from_lsp(
-        lspitem: &CompletionItem,
-        complete_position: Option<u64>,
-    ) -> Result<VimCompleteItem> {
+    pub fn from_lsp(lspitem: &CompletionItem, complete_position: Option<u64>) -> Result<Self> {
+        debug!(
+            "LSP CompletionItem to VimCompleteItem: {:?}, {:?}",
+            lspitem, complete_position
+        );
         let abbr = lspitem.label.clone();
-        let mut word = lspitem.insert_text.clone().unwrap_or_default();
-        if word.is_empty() {
+
+        if let Some(CompletionTextEdit::InsertAndReplace(_)) = lspitem.text_edit {
+            error!("insert replace is not supported");
+        }
+
+        let word = lspitem.insert_text.clone().unwrap_or_else(|| {
+            if lspitem.text_edit.iter().any(|te| match te {
+                CompletionTextEdit::Edit(_) => false,
+                CompletionTextEdit::InsertAndReplace(_) => true,
+            }) {
+                error!("insert replace is not supported");
+            }
+
+            if lspitem.insert_text_format == Some(InsertTextFormat::Snippet)
+                || lspitem
+                    .text_edit
+                    .as_ref()
+                    .map(|text_edit| match text_edit {
+                        CompletionTextEdit::Edit(edit) => edit.new_text.is_empty(),
+                        // InsertAndReplace is not supported, so if we encounter a completion item
+                        // with a text edit of this variant, then we just default to using the label
+                        // as the format instead of the new text.
+                        CompletionTextEdit::InsertAndReplace(_) => true,
+                    })
+                    .unwrap_or(true)
+            {
+                return lspitem.label.clone();
+            }
+
             match (lspitem.text_edit.clone(), complete_position) {
-                (Some(text_edit), Some(complete_position)) => {
+                // see comment above about InsertAndReplace
+                (Some(CompletionTextEdit::InsertAndReplace(_)), _) => lspitem.label.clone(),
+                (Some(CompletionTextEdit::Edit(ref text_edit)), Some(complete_position)) => {
                     // TextEdit range start might be different from vim expected completion start.
                     // From spec, TextEdit can only span one line, i.e., the current line.
-                    if text_edit.range.start.line != complete_position {
-                        word = text_edit
+                    if text_edit.range.start.character != complete_position {
+                        text_edit
                             .new_text
                             .get((complete_position as usize)..)
                             .and_then(|line| line.split_whitespace().next())
-                            .map_or_else(String::new, ToOwned::to_owned);
+                            .map_or_else(String::new, ToOwned::to_owned)
                     } else {
-                        word = text_edit.new_text.clone();
+                        text_edit.new_text.clone()
                     }
                 }
-                (Some(text_edit), _) => {
-                    word = text_edit.new_text.clone();
-                }
-                (_, _) => {
-                    word = lspitem.label.clone();
-                }
+                (Some(CompletionTextEdit::Edit(ref text_edit)), _) => text_edit.new_text.clone(),
+                (_, _) => lspitem.label.clone(),
             }
-        }
+        });
 
-        let is_snippet;
         let snippet;
         if lspitem.insert_text_format == Some(InsertTextFormat::Snippet) {
-            is_snippet = Some(true);
             snippet = Some(word.clone());
         } else {
-            is_snippet = None;
             snippet = None;
         };
 
@@ -592,31 +681,37 @@ impl VimCompleteItem {
 
         let user_data = VimCompleteItemUserData {
             lspitem: Some(lspitem.clone()),
+            snippet: snippet.clone(),
         };
 
-        Ok(VimCompleteItem {
+        #[allow(deprecated)]
+        Ok(Self {
             word,
             abbr,
             icase: Some(1),
             dup: Some(1),
-            menu: lspitem.detail.clone().unwrap_or_default(),
+            menu: lspitem
+                .detail
+                .clone()
+                .unwrap_or_default()
+                .replace("\n", " "),
             info,
             kind: lspitem.kind.map(|k| format!("{:?}", k)).unwrap_or_default(),
+            is_snippet: Some(snippet.is_some()),
             snippet,
-            is_snippet,
             user_data: Some(serde_json::to_string(&user_data)?),
         })
     }
 }
 
 pub trait ToRpcError {
-    fn to_rpc_error(&self) -> rpc::Error;
+    fn to_rpc_error(&self) -> jsonrpc_core::Error;
 }
 
-impl ToRpcError for Error {
-    fn to_rpc_error(&self) -> rpc::Error {
-        rpc::Error {
-            code: rpc::ErrorCode::InternalError,
+impl ToRpcError for anyhow::Error {
+    fn to_rpc_error(&self) -> jsonrpc_core::Error {
+        jsonrpc_core::Error {
+            code: jsonrpc_core::ErrorCode::InternalError,
             message: self.to_string(),
             data: None,
         }
@@ -624,23 +719,21 @@ impl ToRpcError for Error {
 }
 
 pub trait ToParams {
-    fn to_params(self) -> Result<Option<Params>>;
+    fn to_params(self) -> Result<Params>;
 }
 
 impl<T> ToParams for T
 where
     T: Serialize,
 {
-    fn to_params(self) -> Result<Option<Params>> {
+    fn to_params(self) -> Result<Params> {
         let json_value = serde_json::to_value(self)?;
 
         let params = match json_value {
-            Value::Null => None,
-            Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-                Some(Params::Array(vec![json_value]))
-            }
-            Value::Array(vec) => Some(Params::Array(vec)),
-            Value::Object(map) => Some(Params::Map(map)),
+            Value::Null => Params::None,
+            Value::Bool(_) | Value::Number(_) | Value::String(_) => Params::Array(vec![json_value]),
+            Value::Array(vec) => Params::Array(vec),
+            Value::Object(map) => Params::Map(map),
         };
 
         Ok(params)
@@ -657,12 +750,12 @@ impl<'a> ToInt for &'a str {
     }
 }
 
-impl ToInt for rpc::Id {
+impl ToInt for jsonrpc_core::Id {
     fn to_int(&self) -> Result<u64> {
         match *self {
-            rpc::Id::Num(id) => Ok(id),
-            rpc::Id::Str(ref s) => s.as_str().to_int(),
-            rpc::Id::Null => Err(err_msg("Null id")),
+            jsonrpc_core::Id::Num(id) => Ok(id),
+            jsonrpc_core::Id::Str(ref s) => s.as_str().to_int(),
+            jsonrpc_core::Id::Null => Err(anyhow!("Null id")),
         }
     }
 }
@@ -671,7 +764,7 @@ pub trait ToString {
     fn to_string(&self) -> String;
 }
 
-impl ToString for lsp::MarkedString {
+impl ToString for lsp_types::MarkedString {
     fn to_string(&self) -> String {
         match *self {
             MarkedString::String(ref s) => s.clone(),
@@ -680,7 +773,7 @@ impl ToString for lsp::MarkedString {
     }
 }
 
-impl ToString for lsp::MarkupContent {
+impl ToString for lsp_types::MarkupContent {
     fn to_string(&self) -> String {
         self.value.clone()
     }
@@ -692,7 +785,7 @@ impl ToString for Hover {
             HoverContents::Scalar(ref ms) => ms.to_string(),
             HoverContents::Array(ref vec) => vec
                 .iter()
-                .map(|i| i.to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join("\n"),
             HoverContents::Markup(ref mc) => mc.to_string(),
@@ -700,11 +793,11 @@ impl ToString for Hover {
     }
 }
 
-impl ToString for lsp::Documentation {
+impl ToString for lsp_types::Documentation {
     fn to_string(&self) -> String {
         match *self {
-            lsp::Documentation::String(ref s) => s.to_owned(),
-            lsp::Documentation::MarkupContent(ref mc) => mc.to_string(),
+            lsp_types::Documentation::String(ref s) => s.to_owned(),
+            lsp_types::Documentation::MarkupContent(ref mc) => mc.to_string(),
         }
     }
 }
@@ -720,21 +813,24 @@ impl ToString for NumberOrString {
 
 pub trait ToDisplay {
     fn to_display(&self) -> Vec<String>;
+    fn vim_filetype(&self) -> Option<String> {
+        None
+    }
 }
 
-impl ToDisplay for lsp::MarkedString {
+impl ToDisplay for lsp_types::MarkedString {
     fn to_display(&self) -> Vec<String> {
-        match *self {
-            MarkedString::String(ref s) => s.lines().map(|i| i.to_string()).collect(),
-            MarkedString::LanguageString(ref ls) => {
-                let mut buf = Vec::new();
+        let s = match self {
+            MarkedString::String(ref s) => s,
+            MarkedString::LanguageString(ref ls) => &ls.value,
+        };
+        s.lines().map(String::from).collect()
+    }
 
-                buf.push(format!("```{}", ls.language));
-                buf.extend(ls.value.lines().map(|i| i.to_string()));
-                buf.push("```".to_string());
-
-                buf
-            }
+    fn vim_filetype(&self) -> Option<String> {
+        match self {
+            MarkedString::String(_) => Some("markdown".to_string()),
+            MarkedString::LanguageString(ref ls) => Some(ls.language.clone()),
         }
     }
 }
@@ -743,15 +839,51 @@ impl ToDisplay for MarkupContent {
     fn to_display(&self) -> Vec<String> {
         self.value.lines().map(str::to_string).collect()
     }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.kind {
+            MarkupKind::Markdown => Some("markdown".to_string()),
+            MarkupKind::PlainText => Some("text".to_string()),
+        }
+    }
 }
 
 impl ToDisplay for Hover {
     fn to_display(&self) -> Vec<String> {
         match self.contents {
             HoverContents::Scalar(ref ms) => ms.to_display(),
-            HoverContents::Array(ref arr) => arr.iter().flat_map(ToDisplay::to_display).collect(),
+            HoverContents::Array(ref arr) => arr
+                .iter()
+                .flat_map(|ms| {
+                    if let MarkedString::LanguageString(ref ls) = ms {
+                        let mut buf = Vec::new();
+
+                        buf.push(format!("```{}", ls.language));
+                        buf.extend(ls.value.lines().map(String::from));
+                        buf.push("```".to_string());
+
+                        buf
+                    } else {
+                        ms.to_display()
+                    }
+                })
+                .collect(),
             HoverContents::Markup(ref mc) => mc.to_display(),
         }
+    }
+
+    fn vim_filetype(&self) -> Option<String> {
+        match self.contents {
+            HoverContents::Scalar(ref ms) => ms.vim_filetype(),
+            HoverContents::Array(_) => Some("markdown".to_string()),
+            HoverContents::Markup(ref mc) => mc.vim_filetype(),
+        }
+    }
+}
+
+impl ToDisplay for str {
+    fn to_display(&self) -> Vec<String> {
+        self.lines().map(String::from).collect()
     }
 }
 
@@ -759,7 +891,7 @@ pub trait LinesLen {
     fn lines_len(&self) -> usize;
 }
 
-impl LinesLen for lsp::MarkedString {
+impl LinesLen for lsp_types::MarkedString {
     fn lines_len(&self) -> usize {
         match *self {
             MarkedString::String(ref s) => s.lines().count(),
@@ -778,7 +910,7 @@ impl LinesLen for Hover {
     fn lines_len(&self) -> usize {
         match self.contents {
             HoverContents::Scalar(ref c) => c.lines_len(),
-            HoverContents::Array(ref arr) => arr.iter().map(|i| i.lines_len()).sum(),
+            HoverContents::Array(ref arr) => arr.iter().map(LinesLen::lines_len).sum(),
             HoverContents::Markup(ref c) => c.lines_len(),
         }
     }
@@ -827,65 +959,18 @@ impl ToUsize for u64 {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum VimVar {
-    Buftype,
-    LanguageId,
-    Filename,
-    Line,
-    Character,
-    Text,
-    Cword,
-    NewName,
-    GotoCmd,
-    Handle,
-    IncludeDeclaration,
-}
-
 pub trait VimExp {
     fn to_key(&self) -> String;
     fn to_exp(&self) -> String;
 }
 
-impl VimExp for VimVar {
-    fn to_key(&self) -> String {
-        match *self {
-            VimVar::Buftype => "buftype",
-            VimVar::LanguageId => "languageId",
-            VimVar::Filename => "filename",
-            VimVar::Line => "line",
-            VimVar::Character => "character",
-            VimVar::Text => "text",
-            VimVar::Cword => "cword",
-            VimVar::NewName => "newName",
-            VimVar::GotoCmd => "gotoCmd",
-            VimVar::Handle => "handle",
-            VimVar::IncludeDeclaration => "includeDeclaration",
-        }.to_owned()
-    }
-
-    fn to_exp(&self) -> String {
-        match *self {
-            VimVar::Buftype => "&buftype",
-            VimVar::LanguageId => "&filetype",
-            VimVar::Filename => "LSP#filename()",
-            VimVar::Line => "LSP#line()",
-            VimVar::Character => "LSP#character()",
-            VimVar::Text => "LSP#text()",
-            VimVar::Cword => "expand('<cword>')",
-            VimVar::NewName | VimVar::GotoCmd => "v:null",
-            VimVar::Handle | VimVar::IncludeDeclaration => "v:true",
-        }.to_owned()
-    }
-}
-
 impl<'a> VimExp for &'a str {
     fn to_key(&self) -> String {
-        self.to_string()
+        (*self).to_string()
     }
 
     fn to_exp(&self) -> String {
-        self.to_string()
+        (*self).to_string()
     }
 }
 
@@ -976,16 +1061,6 @@ impl Default for TextDocumentItemMetadata {
     }
 }
 
-pub trait OptionDeref<T: Deref> {
-    fn as_deref(&self) -> Option<&T::Target>;
-}
-
-impl<T: Deref> OptionDeref<T> for Option<T> {
-    fn as_deref(&self) -> Option<&T::Target> {
-        self.as_ref().map(Deref::deref)
-    }
-}
-
 pub trait ToLSP<T> {
     fn to_lsp(self) -> Result<T>;
 }
@@ -1020,47 +1095,165 @@ impl ToLSP<Vec<FileEvent>> for notify::DebouncedEvent {
                 },
             ]),
             notify::DebouncedEvent::Chmod(_) | notify::DebouncedEvent::Rescan => Ok(vec![]),
-            e @ notify::DebouncedEvent::Error(_, _) => Err(format_err!("{:?}", e)),
+            e @ notify::DebouncedEvent::Error(_, _) => Err(anyhow!("{:?}", e)),
         }
     }
 }
 
-impl<T> ToLSP<T> for Value
-where
-    T: DeserializeOwned,
-{
-    fn to_lsp(self) -> Result<T> {
-        Ok(serde_json::from_value(self)?)
-    }
+pub trait ListItem {
+    fn quickfix_item(&self, lc: &LanguageClient) -> Result<QuickfixEntry>;
+    fn string_item(&self, lc: &LanguageClient, cwd: &str) -> Result<String>;
 }
 
-impl<T> ToLSP<T> for Option<Params>
-where
-    T: DeserializeOwned,
-{
-    fn to_lsp(self) -> Result<T> {
-        serde_json::to_value(self)?.to_lsp()
-    }
-}
-
-pub trait FromLSP<F>
-where
-    Self: Sized,
-{
-    fn from_lsp(f: &F) -> Result<Self>;
-}
-
-impl FromLSP<SymbolInformation> for QuickfixEntry {
-    fn from_lsp(sym: &SymbolInformation) -> Result<Self> {
-        let start = sym.location.range.start;
+impl ListItem for Location {
+    fn quickfix_item(&self, lc: &LanguageClient) -> Result<QuickfixEntry> {
+        let filename = self.uri.filepath()?.to_string_lossy().into_owned();
+        let start = self.range.start;
+        let text = lc.get_line(&filename, start.line).unwrap_or_default();
 
         Ok(QuickfixEntry {
-            filename: sym.location.uri.filepath()?.to_string_lossy().into_owned(),
+            filename,
             lnum: start.line + 1,
             col: Some(start.character + 1),
-            text: Some(sym.name.clone()),
+            text: Some(text),
             nr: None,
             typ: None,
         })
     }
+
+    fn string_item(&self, lc: &LanguageClient, cwd: &str) -> Result<String> {
+        let filename = self.uri.filepath()?;
+        let start = self.range.start;
+        let text = lc.get_line(&filename, start.line).unwrap_or_default();
+        let relpath = diff_paths(&filename, Path::new(&cwd)).unwrap_or(filename);
+        Ok(format!(
+            "{}:{}:{}:\t{}",
+            relpath.to_string_lossy(),
+            start.line + 1,
+            start.character + 1,
+            text,
+        ))
+    }
+}
+
+impl ListItem for CodeAction {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let text = Some(format!(
+            "{}: {}",
+            code_action_kind_as_str(&self),
+            self.title
+        ));
+
+        Ok(QuickfixEntry {
+            filename: "".into(),
+            lnum: 0,
+            col: None,
+            text,
+            nr: None,
+            typ: None,
+        })
+    }
+
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        Ok(format!(
+            "{}: {}",
+            code_action_kind_as_str(&self),
+            self.title
+        ))
+    }
+}
+
+impl ListItem for Command {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        Ok(QuickfixEntry {
+            filename: "".into(),
+            lnum: 0,
+            col: None,
+            text: Some(format!("{}: {}", self.command, self.title)),
+            nr: None,
+            typ: None,
+        })
+    }
+
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        Ok(format!("{}: {}", self.command, self.title))
+    }
+}
+
+impl ListItem for lsp_types::DocumentSymbol {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let start = self.selection_range.start;
+        let result = QuickfixEntry {
+            filename: "".to_string(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        };
+        Ok(result)
+    }
+
+    fn string_item(&self, _: &LanguageClient, _: &str) -> Result<String> {
+        let start = self.selection_range.start;
+        let result = format!(
+            "{}:{}:\t{}\t\t{:?}",
+            start.line + 1,
+            start.character + 1,
+            self.name.clone(),
+            self.kind
+        );
+        Ok(result)
+    }
+}
+
+impl ListItem for SymbolInformation {
+    fn quickfix_item(&self, _: &LanguageClient) -> Result<QuickfixEntry> {
+        let start = self.location.range.start;
+
+        Ok(QuickfixEntry {
+            filename: self.location.uri.filepath()?.to_string_lossy().into_owned(),
+            lnum: start.line + 1,
+            col: Some(start.character + 1),
+            text: Some(self.name.clone()),
+            nr: None,
+            typ: None,
+        })
+    }
+
+    fn string_item(&self, _: &LanguageClient, cwd: &str) -> Result<String> {
+        let filename = self.location.uri.filepath()?;
+        let relpath = diff_paths(&filename, Path::new(cwd)).unwrap_or(filename);
+        let start = self.location.range.start;
+        Ok(format!(
+            "{}:{}:{}:\t{}\t\t{:?}",
+            relpath.to_string_lossy(),
+            start.line + 1,
+            start.character + 1,
+            self.name,
+            self.kind
+        ))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RawMessage {
+    Notification(jsonrpc_core::Notification),
+    MethodCall(jsonrpc_core::MethodCall),
+    Output(jsonrpc_core::Output),
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub struct VirtualText {
+    pub line: u64,
+    pub text: String,
+    pub hl_group: String,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceEditWithCursor {
+    pub workspace_edit: WorkspaceEdit,
+    pub cursor_position: Option<TextDocumentPositionParams>,
 }

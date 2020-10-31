@@ -1,17 +1,20 @@
-FROM rust:1.27-slim
+FROM rust:1.41-slim
 
 RUN apt-get update \
-        && apt-get install --yes curl git neovim python3-pip python3-pytest mypy flake8 \
-        && pip3 install neovim vim-vint
+        && apt-get install --yes --no-install-recommends neovim curl git python3-pip python3-pytest mypy flake8 npm make \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
-        && apt-get install --yes nodejs \
-        && npm install -g javascript-typescript-langserver@2.5.5
+RUN python3 -m pip install neovim vim-vint
 
-RUN rustup component add rls-preview rust-analysis rust-src \
+RUN npm install -g javascript-typescript-langserver@2.5.5
+
+RUN rustup component add rustfmt rls rust-analysis rust-src \
         && rustc --version \
         && rls --version
+RUN curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o /usr/local/bin/rust-analyzer \
+        && chmod +x /usr/local/bin/rust-analyzer
 
 ENV CARGO_TARGET_DIR=/tmp
 
-CMD /bin/bash
+CMD ["/bin/bash"]

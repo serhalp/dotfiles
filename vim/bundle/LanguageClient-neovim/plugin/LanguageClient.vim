@@ -1,3 +1,11 @@
+if !exists('g:LanguageClient_serverCommands')
+    let g:LanguageClient_serverCommands = {}
+endif
+
+if !exists('g:LanguageClient_semanticHighlightMaps')
+    let g:LanguageClient_semanticHighlightMaps = {}
+endif
+
 function! LanguageClient_textDocument_hover(...)
     return call('LanguageClient#textDocument_hover', a:000)
 endfunction
@@ -28,6 +36,10 @@ endfunction
 
 function! LanguageClient_textDocument_codeAction(...)
     return call('LanguageClient#textDocument_codeAction', a:000)
+endfunction
+
+function! LanguageClient_textDocument_codeLens(...)
+    return call('LanguageClient#textDocument_codeLens', a:000)
 endfunction
 
 function! LanguageClient_textDocument_completion(...)
@@ -86,8 +98,16 @@ function! LanguageClient_serverStatusMessage(...)
     return call('LanguageClient#serverStatusMessage', a:000)
 endfunction
 
+function! LanguageClient_isServerRunning(...)
+    return call('LanguageClient#isServerRunning', a:000)
+endfunction
+
 function! LanguageClient_statusLine(...)
     return call('LanguageClient#statusLine', a:000)
+endfunction
+
+function! LanguageClient_statusLineDiagnosticsCounts(...)
+    return call('LanguageClient#statusLineDiagnosticsCounts', a:000)
 endfunction
 
 function! LanguageClient_clearDocumentHighlight(...)
@@ -102,13 +122,26 @@ function! LanguageClient_cquery_vars(...)
     return call('LanguageClient#cquery_vars', a:000)
 endfunction
 
+function! LanguageClient_closeFloatingHover(...)
+    return call('LanguageClient#closeFloatingHover', a:000)
+endfunction
+
+function! LanguageClient_handleCodeLensAction(...)
+    return call('LanguageClient#handleCodeLensAction', a:000)
+endfunction
+
+function! LanguageClient_explainErrorAtPoint(...)
+    return call('LanguageClient#explainErrorAtPoint', a:000)
+endfunction
+
 command! -nargs=* LanguageClientStart :call LanguageClient#startServer(<f-args>)
 command! LanguageClientStop :call LanguageClient#exit()
 
 augroup languageClient
     autocmd!
+    autocmd FileType * call LanguageClient#handleFileType()
     autocmd BufNewFile * call LanguageClient#handleBufNewFile()
-    autocmd BufReadPost * call LanguageClient#handleBufReadPost()
+    autocmd BufEnter * call LanguageClient#handleBufEnter()
     autocmd BufWritePost * call LanguageClient#handleBufWritePost()
     autocmd BufDelete * call LanguageClient#handleBufDelete()
     autocmd TextChanged * call LanguageClient#handleTextChanged()
@@ -125,4 +158,20 @@ augroup languageClient
         autocmd CompleteDone *
                     \ call LanguageClient#textDocument_signatureHelp({}, 's:HandleOutputNothing')
     endif
+
+    nnoremap <Plug>(lcn-menu)               :call LanguageClient_contextMenu()<CR>
+    nnoremap <Plug>(lcn-hover)              :call LanguageClient_textDocument_hover()<CR>
+    nnoremap <Plug>(lcn-rename)             :call LanguageClient_textDocument_rename()<CR>
+    nnoremap <Plug>(lcn-definition)         :call LanguageClient_textDocument_definition()<CR>
+    nnoremap <Plug>(lcn-type-definition)    :call LanguageClient_textDocument_typeDefinition()<CR>
+    nnoremap <Plug>(lcn-references)         :call LanguageClient_textDocument_references()<CR>
+    nnoremap <Plug>(lcn-implementation)     :call LanguageClient_textDocument_implementation()<CR>
+    nnoremap <Plug>(lcn-code-action)        :call LanguageClient_textDocument_codeAction()<CR>
+    vnoremap <Plug>(lcn-code-action)        :call LanguageClient#textDocument_visualCodeAction()<CR>
+    nnoremap <Plug>(lcn-code-lens-action)   :call LanguageClient_handleCodeLensAction()<CR>
+    nnoremap <Plug>(lcn-symbols)            :call LanguageClient_textDocument_documentSymbol()<CR>
+    nnoremap <Plug>(lcn-highlight)          :call LanguageClient_textDocument_documentHighlight()<CR>
+    nnoremap <Plug>(lcn-explain-error)      :call LanguageClient_explainErrorAtPoint()<CR>
+    nnoremap <Plug>(lcn-format)             :call LanguageClient_textDocument_formatting()<CR>
+    nnoremap <Plug>(lcn-format-sync)        :call LanguageClient_textDocument_formatting_sync()<CR>
 augroup END

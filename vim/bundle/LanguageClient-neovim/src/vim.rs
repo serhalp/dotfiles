@@ -1,406 +1,255 @@
-use super::*;
+use crate::rpcclient::RpcClient;
+use crate::{
+    sign::Sign,
+    types::{Bufnr, QuickfixEntry, VimExp, VirtualText},
+    utils::Canonicalize,
+    viewport::Viewport,
+};
+use anyhow::Result;
+use jsonrpc_core::Value;
+use log::*;
+use lsp_types::Position;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::json;
+use std::{path::Path, sync::Arc};
 
-impl State {
-    fn poll_call(&mut self) -> Result<Call> {
-        if let Some(msg) = self.pending_calls.pop_front() {
-            return Ok(msg);
-        }
+/// Try get value of an variable from RPC params.
+pub fn try_get<R: DeserializeOwned>(key: &str, params: &Value) -> Result<Option<R>> {
+    let value = &params[key];
+    if value == &Value::Null {
+        Ok(None)
+    } else {
+        Ok(serde_json::from_value(value.clone())?)
+    }
+}
 
-        loop {
-            let msg = self.rx.recv()?;
-            match msg {
-                Message::MethodCall(lang_id, method_call) => {
-                    return Ok(Call::MethodCall(lang_id, method_call));
-                }
-                Message::Notification(lang_id, notification) => {
-                    return Ok(Call::Notification(lang_id, notification));
-                }
-                Message::Output(output) => {
-                    let mid = output.id().to_int()?;
-                    self.pending_outputs.insert(mid, output);
-                }
+#[derive(PartialEq)]
+pub enum Mode {
+    Normal,
+    Insert,
+    Replace,
+    Visual,
+    VisualLine,
+    VisualBlock,
+    Command,
+    Select,
+    SelectLine,
+    SelectBlock,
+    Terminal,
+}
+
+impl From<&str> for Mode {
+    fn from(mode: &str) -> Self {
+        match mode {
+            "n" => Mode::Normal,
+            "i" => Mode::Insert,
+            "R" => Mode::Replace,
+            "v" => Mode::Visual,
+            "V" => Mode::VisualLine,
+            "<C-v>" => Mode::VisualBlock,
+            "c" => Mode::Command,
+            "s" => Mode::Select,
+            "S" => Mode::SelectLine,
+            "<C-s>" => Mode::SelectBlock,
+            "t" => Mode::Terminal,
+            m => {
+                error!("unknown mode {}, falling back to Mode::Normal", m);
+                Mode::Normal
             }
         }
     }
+}
 
-    fn poll_output(&mut self, id: Id) -> Result<rpc::Output> {
-        if let Some(output) = self.pending_outputs.remove(&id) {
-            return Ok(output);
-        }
+#[derive(Clone)]
+pub struct Vim {
+    pub rpcclient: Arc<RpcClient>,
+}
 
-        loop {
-            let msg = self.rx.recv_timeout(self.wait_output_timeout)?;
-            match msg {
-                Message::MethodCall(lang_id, method_call) => self
-                    .pending_calls
-                    .push_back(Call::MethodCall(lang_id, method_call)),
-                Message::Notification(lang_id, notification) => self
-                    .pending_calls
-                    .push_back(Call::Notification(lang_id, notification)),
-                Message::Output(output) => {
-                    let mid = output.id().to_int()?;
-                    if mid == id {
-                        return Ok(output);
-                    } else {
-                        self.pending_outputs.insert(mid, output);
-                    }
-                }
-            }
-        }
+impl Vim {
+    pub fn new(rpcclient: Arc<RpcClient>) -> Self {
+        Self { rpcclient }
     }
 
-    pub fn loop_message(&mut self) -> Result<()> {
-        loop {
-            match self.poll_call()? {
-                Call::MethodCall(lang_id, method_call) => {
-                    let result = self.handle_method_call(lang_id.as_deref(), &method_call);
-                    if let Err(ref err) = result {
-                        if err.downcast_ref::<LCError>().is_none() {
-                            error!(
-                                "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
-                                err,
-                                serde_json::to_string(&method_call).unwrap_or_default(),
-                                err
-                            );
-                        }
-                    }
-                    let _ = self.output(lang_id.as_deref(), method_call.id, result);
-                }
-                Call::Notification(lang_id, notification) => {
-                    let result = self.handle_notification(lang_id.as_deref(), &notification);
-                    if let Err(ref err) = result {
-                        if err.downcast_ref::<LCError>().is_none() {
-                            error!(
-                                "Error handling message: {}\n\nMessage: {}\n\nError: {:?}",
-                                err,
-                                serde_json::to_string(&notification).unwrap_or_default(),
-                                err
-                            );
-                        }
-                    }
-                }
-            }
+    /// Fundamental functions.
 
-            if let Err(err) = self.handle_fs_events() {
-                warn!("{:?}", err);
-            }
-        }
+    pub fn get_mode(&self) -> Result<Mode> {
+        let mode: String = self.rpcclient.call("mode", json!([]))?;
+        Ok(Mode::from(mode.as_str()))
     }
 
-    /// Send message to RPC server.
-    fn write(&mut self, languageId: Option<&str>, message: &str) -> Result<()> {
-        info!("=> {:?} {}", languageId, message);
-        if let Some(languageId) = languageId {
-            let writer = self
-                .writers
-                .get_mut(languageId)
-                .ok_or(LCError::NoLanguageServer {
-                    languageId: languageId.to_owned(),
-                })?;
-            write!(
-                writer,
-                "Content-Length: {}\r\n\r\n{}",
-                message.len(),
-                message
-            )?;
-            writer.flush()?;
-        } else {
-            println!("Content-Length: {}\n\n{}", message.len(), message);
-        }
-
-        Ok(())
+    pub fn command(&self, cmds: impl Serialize) -> Result<()> {
+        self.rpcclient.notify("s:command", &cmds)
     }
 
-    /// RPC method call.
-    pub fn call<P, V>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Result<V>
-    where
-        P: Serialize,
-        V: DeserializeOwned,
-    {
-        self.id += 1;
-        let id = self.id;
-
-        let method_call = rpc::MethodCall {
-            jsonrpc: Some(rpc::Version::V2),
-            id: rpc::Id::Num(id),
-            method: method.into(),
-            params: params.to_params()?,
-        };
-
-        let message = serde_json::to_string(&method_call)?;
-        self.write(languageId, &message)?;
-
-        match self.poll_output(id)? {
-            rpc::Output::Success(success) => Ok(serde_json::from_value(success.result)?),
-            rpc::Output::Failure(failure) => Err(format_err!("{}", failure.error.message)),
-        }
-    }
-
-    /// RPC notification.
-    pub fn notify<P>(&mut self, languageId: Option<&str>, method: &str, params: P) -> Result<()>
-    where
-        P: Serialize,
-    {
-        let notification = rpc::Notification {
-            jsonrpc: Some(rpc::Version::V2),
-            method: method.to_owned(),
-            params: params.to_params()?,
-        };
-
-        let message = serde_json::to_string(&notification)?;
-        self.write(languageId, &message)?;
-
-        Ok(())
-    }
-
-    /// Write an RPC call output.
-    fn output(
-        &mut self,
-        languageId: Option<&str>,
-        id: rpc::Id,
-        result: Result<Value>,
-    ) -> Result<()> {
-        let response = match result {
-            Ok(ok) => rpc::Output::Success(rpc::Success {
-                jsonrpc: Some(rpc::Version::V2),
-                id,
-                result: ok,
-            }),
-            Err(err) => rpc::Output::Failure(rpc::Failure {
-                jsonrpc: Some(rpc::Version::V2),
-                id,
-                error: err.to_rpc_error(),
-            }),
-        };
-
-        let message = serde_json::to_string(&response)?;
-        self.write(languageId, &message)?;
-        Ok(())
-    }
-
-    /////// Vim wrappers ///////
-
-    #[allow(needless_pass_by_value)]
-    pub fn eval<E, T>(&mut self, exp: E) -> Result<T>
+    pub fn eval<E, T>(&self, exp: E) -> Result<T>
     where
         E: VimExp,
         T: DeserializeOwned,
     {
-        let result = self.call(None, "eval", exp.to_exp())?;
-        Ok(serde_json::from_value(result)?)
+        self.rpcclient.call("eval", &exp.to_exp())
     }
 
-    pub fn command<P: Serialize + Debug>(&mut self, cmds: P) -> Result<()> {
-        if self.call::<_, u8>(None, "execute", &cmds)? != 0 {
-            bail!("Failed to execute command: {:?}", cmds);
-        }
-        Ok(())
+    /// Function wrappers.
+
+    pub fn getbufvar<R: DeserializeOwned>(&self, bufname: &str, var: &str) -> Result<R> {
+        self.rpcclient.call("getbufvar", json!([bufname, var]))
     }
 
-    ////// Vim builtin function wrappers ///////
+    pub fn get_filename(&self, params: &Value) -> Result<String> {
+        let key = "filename";
+        let expr = "LSP#filename()";
 
-    pub fn echo<S>(&mut self, message: S) -> Result<()>
-    where
-        S: AsRef<str> + Serialize,
-    {
-        self.notify(None, "s:Echo", message)
+        let filename: String = try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)?;
+        Ok(filename.canonicalize())
     }
 
-    pub fn echo_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
+    pub fn get_language_id(&self, filename: &str, params: &Value) -> Result<String> {
+        let key = "languageId";
+        let expr = "&filetype";
+
+        try_get(key, params)?.map_or_else(|| self.getbufvar(filename, expr), Ok)
+    }
+
+    pub fn get_bufnr(&self, filename: &str, params: &Value) -> Result<Bufnr> {
+        let key = "bufnr";
+
+        try_get(key, params)?.map_or_else(|| self.eval(format!("bufnr('{}')", filename)), Ok)
+    }
+
+    pub fn get_viewport(&self, params: &Value) -> Result<Viewport> {
+        let key = "viewport";
+        let expr = "LSP#viewport()";
+
+        try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)
+    }
+
+    pub fn get_position(&self, params: &Value) -> Result<Position> {
+        let key = "position";
+        let expr = "LSP#position()";
+
+        try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)
+    }
+
+    pub fn get_current_word(&self, params: &Value) -> Result<String> {
+        let key = "cword";
+        let expr = "expand('<cword>')";
+
+        try_get(key, params)?.map_or_else(|| self.eval(expr), Ok)
+    }
+
+    pub fn get_goto_cmd(&self, params: &Value) -> Result<Option<String>> {
+        let key = "gotoCmd";
+
+        try_get(key, params)
+    }
+
+    pub fn get_tab_size(&self) -> Result<u64> {
+        let expr = "shiftwidth()";
+
+        self.eval(expr)
+    }
+
+    pub fn get_insert_spaces(&self, filename: &str) -> Result<bool> {
+        let insert_spaces: i8 = self.getbufvar(filename, "&expandtab")?;
+        Ok(insert_spaces == 1)
+    }
+
+    pub fn get_text(&self, bufname: &str) -> Result<Vec<String>> {
+        self.rpcclient.call("LSP#text", json!([bufname]))
+    }
+
+    pub fn get_handle(&self, params: &Value) -> Result<bool> {
+        let key = "handle";
+
+        try_get(key, params)?.map_or_else(|| Ok(true), Ok)
+    }
+
+    pub fn echo(&self, message: impl AsRef<str>) -> Result<()> {
+        self.rpcclient.notify("s:Echo", message.as_ref())
+    }
+
+    pub fn echo_ellipsis(&self, message: impl AsRef<str>) -> Result<()> {
         let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
-        self.notify(None, "s:EchoEllipsis", message)
+        self.rpcclient.notify("s:EchoEllipsis", message)
     }
 
-    pub fn echomsg_ellipsis<S: AsRef<str>>(&mut self, message: S) -> Result<()> {
+    pub fn echomsg_ellipsis(&self, message: impl AsRef<str>) -> Result<()> {
         let message = message.as_ref().lines().collect::<Vec<_>>().join(" ");
-        self.notify(None, "s:EchomsgEllipsis", message)
+        self.rpcclient.notify("s:EchomsgEllipsis", message)
     }
 
-    pub fn echomsg<S>(&mut self, message: S) -> Result<()>
-    where
-        S: AsRef<str> + Serialize,
-    {
-        self.notify(None, "s:Echomsg", message)
+    pub fn echomsg(&self, message: impl AsRef<str>) -> Result<()> {
+        self.rpcclient.notify("s:Echomsg", message.as_ref())
     }
 
-    pub fn echoerr<S>(&mut self, message: S) -> Result<()>
-    where
-        S: AsRef<str> + Serialize,
-    {
-        self.notify(None, "s:Echoerr", message)
+    pub fn echoerr(&self, message: impl AsRef<str>) -> Result<()> {
+        self.rpcclient.notify("s:Echoerr", message.as_ref())
     }
 
-    pub fn echowarn<S>(&mut self, message: S) -> Result<()>
-    where
-        S: AsRef<str> + Serialize,
-    {
-        self.notify(None, "s:Echowarn", message)
+    pub fn echowarn(&self, message: impl AsRef<str>) -> Result<()> {
+        self.rpcclient.notify("s:Echowarn", message.as_ref())
     }
 
-    pub fn cursor(&mut self, lnum: u64, col: u64) -> Result<()> {
-        self.notify(None, "cursor", json!([lnum, col]))
+    pub fn cursor(&self, lnum: u64, col: u64) -> Result<()> {
+        self.rpcclient.notify("cursor", json!([lnum, col]))
     }
 
-    pub fn setline(&mut self, lnum: u64, text: &[String]) -> Result<()> {
-        if self.call::<_, u8>(None, "setline", json!([lnum, text]))? != 0 {
-            bail!("Failed to set buffer content!");
-        }
-        Ok(())
+    #[allow(dead_code)]
+    pub fn setline(&self, lnum: u64, text: &[String]) -> Result<()> {
+        self.rpcclient.notify("setline", json!([lnum, text]))
     }
 
-    pub fn edit<P: AsRef<Path>>(&mut self, goto_cmd: &Option<String>, path: P) -> Result<()> {
+    pub fn edit(&self, goto_cmd: &Option<String>, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref().to_string_lossy();
-
         let goto = goto_cmd.as_deref().unwrap_or("edit");
-        if self.call::<_, u8>(None, "s:Edit", json!([goto, path]))? != 0 {
-            bail!("Failed to edit file: {}", path);
-        }
-
-        if path.starts_with("jdt://") {
-            self.command("setlocal buftype=nofile filetype=java noswapfile")?;
-
-            let result = self.java_classFileContents(&json!({
-                VimVar::LanguageId.to_key(): "java",
-                "uri": path,
-            }))?;
-            let content = match result {
-                Value::String(s) => s,
-                _ => bail!("Unexpected type: {:?}", result),
-            };
-            let lines: Vec<String> = content
-                .lines()
-                .map(std::string::ToString::to_string)
-                .collect();
-            self.setline(1, &lines)?;
-        }
+        self.rpcclient.notify("s:Edit", json!([goto, path]))?;
         Ok(())
     }
 
-    pub fn setqflist(&mut self, list: &[QuickfixEntry]) -> Result<()> {
-        if self.call::<_, u8>(None, "setqflist", json!([list, "r"]))? != 0 {
-            bail!("Failed to set quickfix list!");
-        }
+    pub fn setqflist(&self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
+        info!("Begin setqflist");
+        let parms = json!([list, action]);
+        self.rpcclient.notify("setqflist", parms)?;
+        let parms = json!([[], "a", { "title": title }]);
+        self.rpcclient.notify("setqflist", parms)?;
         Ok(())
     }
 
-    pub fn setloclist(&mut self, list: &[QuickfixEntry]) -> Result<()> {
-        if self.call::<_, u8>(None, "setloclist", json!([0, list, "r"]))? != 0 {
-            bail!("Failed to set location list!");
-        }
+    pub fn setloclist(&self, list: &[QuickfixEntry], action: &str, title: &str) -> Result<()> {
+        let parms = json!([0, list, action]);
+        self.rpcclient.notify("setloclist", parms)?;
+        let parms = json!([0, [], "a", { "title": title }]);
+        self.rpcclient.notify("setloclist", parms)?;
         Ok(())
     }
 
-    pub fn get<F, T>(&self, f: F) -> Result<T>
-    where
-        F: FnOnce(&State) -> Result<T>,
-    {
-        f(self)
+    pub fn create_namespace(&self, name: &str) -> Result<i64> {
+        self.rpcclient.call("nvim_create_namespace", [name])
     }
 
-    pub fn update<F, T>(&mut self, f: F) -> Result<T>
-    where
-        F: FnOnce(&mut State) -> Result<T>,
-    {
-        use log::Level;
-
-        let before = if log_enabled!(Level::Debug) {
-            let s = serde_json::to_string(self)?;
-            serde_json::from_str(&s)?
-        } else {
-            Value::default()
-        };
-        let result = f(self);
-        let after = if log_enabled!(Level::Debug) {
-            let s = serde_json::to_string(self)?;
-            serde_json::from_str(&s)?
-        } else {
-            Value::default()
-        };
-        for (k, (v1, v2)) in diff_value(&before, &after, "state") {
-            debug!("{}: {} ==> {}", k, v1, v2);
-        }
-        result
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum RawMessage {
-    Notification(rpc::Notification),
-    MethodCall(rpc::MethodCall),
-    Output(rpc::Output),
-}
-
-pub fn loop_reader<T: BufRead>(
-    input: T,
-    languageId: &Option<String>,
-    tx: &Sender<Message>,
-) -> Result<()> {
-    // Count how many consequent empty lines.
-    let mut count_empty_lines = 0;
-
-    let mut input = input;
-    let mut content_length = 0;
-    loop {
-        let mut message = String::new();
-        let mut line = String::new();
-        if languageId.is_some() {
-            input.read_line(&mut line)?;
-            let line = line.trim();
-            if line.is_empty() {
-                count_empty_lines += 1;
-                if count_empty_lines > 5 {
-                    bail!("Unable to read from language server");
-                }
-
-                let mut buf = vec![0; content_length];
-                input.read_exact(buf.as_mut_slice())?;
-                message = String::from_utf8(buf)?;
-            } else {
-                count_empty_lines = 0;
-                if !line.starts_with("Content-Length") {
-                    continue;
-                }
-
-                let tokens: Vec<&str> = line.splitn(2, ':').collect();
-                let len = tokens
-                    .get(1)
-                    .ok_or_else(|| format_err!("Failed to get length! tokens: {:?}", tokens))?
-                    .trim();
-                content_length = usize::from_str(len)?;
-            }
-        } else if input.read_line(&mut message)? == 0 {
-            break;
-        }
-
-        let message = message.trim();
-        if message.is_empty() {
-            continue;
-        }
-        info!("<= {:?} {}", languageId, message);
-        // FIXME: Remove extra `meta` property from javascript-typescript-langserver.
-        let s = message.replace(r#","meta":{}"#, "");
-        let message = serde_json::from_str(&s);
-        if let Err(ref err) = message {
-            error!(
-                "Failed to deserialize output: {}\n\n Message: {}\n\nError: {:?}",
-                err, s, err
-            );
-            continue;
-        }
-        // TODO: cleanup.
-        let message = message.unwrap();
-        let message = match message {
-            RawMessage::MethodCall(method_call) => {
-                Message::MethodCall(languageId.clone(), method_call)
-            }
-            RawMessage::Notification(notification) => {
-                Message::Notification(languageId.clone(), notification)
-            }
-            RawMessage::Output(output) => Message::Output(output),
-        };
-        tx.send(message)?;
+    pub fn set_virtual_texts(
+        &self,
+        buf_id: i64,
+        ns_id: i64,
+        line_start: u64,
+        line_end: u64,
+        virtual_texts: &[VirtualText],
+    ) -> Result<i8> {
+        self.rpcclient.call(
+            "s:set_virtual_texts",
+            json!([buf_id, ns_id, line_start, line_end, virtual_texts]),
+        )
     }
 
-    Ok(())
+    pub fn set_signs(
+        &self,
+        filename: &str,
+        signs_to_add: &[Sign],
+        signs_to_delete: &[Sign],
+    ) -> Result<i8> {
+        self.rpcclient.call(
+            "s:set_signs",
+            json!([filename, signs_to_add, signs_to_delete]),
+        )
+    }
 }

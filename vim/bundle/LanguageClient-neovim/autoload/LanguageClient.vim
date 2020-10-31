@@ -8,6 +8,12 @@ let s:TYPE = {
 \   'dict':    type({}),
 \   'funcref': type(function('call'))
 \ }
+let s:FLOAT_WINDOW_AVAILABLE = exists('*nvim_open_win')
+let s:POPUP_WINDOW_AVAILABLE = exists('*popup_atcursor')
+
+function! s:AddPrefix(message) abort
+    return '[LC] ' . a:message
+endfunction
 
 function! s:Echo(message) abort
     echo a:message
@@ -37,7 +43,7 @@ endfunction
 " `echomsg` message without trigger |hit-enter|
 function! s:EchomsgEllipsis(message) abort
     " Credit: ALE, snippets from ale#cursor#TruncatedEcho()
-    let l:message = a:message
+    let l:message = s:AddPrefix(a:message)
     " Change tabs to spaces.
     let l:message = substitute(l:message, "\t", ' ', 'g')
     " Remove any newlines in the message.
@@ -64,15 +70,28 @@ function! s:EchomsgEllipsis(message) abort
 endfunction
 
 function! s:Echomsg(message) abort
-    echomsg a:message
+    echomsg s:AddPrefix(a:message)
 endfunction
 
 function! s:Echoerr(message) abort
-    echohl Error | echomsg a:message | echohl None
+    echohl Error | echomsg s:AddPrefix(a:message) | echohl None
 endfunction
 
 function! s:Echowarn(message) abort
-    echohl WarningMsg | echomsg a:message | echohl None
+    echohl WarningMsg | echomsg s:AddPrefix(a:message) | echohl None
+endfunction
+
+" timeout: skip function call f until this timeout, in seconds.
+function! s:Debounce(timeout, f) abort
+    " Map function to its last execute time.
+    let s:DebounceMap = {}
+    let l:lastexectime = get(s:DebounceMap, a:f)
+    if l:lastexectime == 0 || reltimefloat(reltime(l:lastexectime)) < a:timeout
+        let s:DebounceMap[a:f] = reltime()
+        return v:true
+    else
+        return v:false
+    endif
 endfunction
 
 function! s:Debug(message) abort
@@ -86,24 +105,37 @@ function! s:Debug(message) abort
 endfunction
 
 function! s:hasSnippetSupport() abort
-    if get(g:, 'LanguageClient_hasSnippetSupport', 1) !=# 1
-        return 0
+    if exists('g:LanguageClient_hasSnippetSupport')
+        return g:LanguageClient_hasSnippetSupport !=# 0
     endif
 
-    " https://github.com/SirVer/ultisnips
-    if exists('g:did_plugin_ultisnips')
-        return 1
-    endif
     " https://github.com/Shougo/neosnippet.vim
     if exists('g:loaded_neosnippet')
         return 1
     endif
-    " https://github.com/garbas/vim-snipmate
-    if exists('g:loaded_snips')
-        return 1
-    endif
 
     return 0
+endfunction
+
+function! s:getSelectionUI() abort
+	if type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
+		return 'funcref'
+	else
+		return get(g:, 'LanguageClient_selectionUI', v:null)
+	endif
+endfunction
+
+function! s:useVirtualText() abort
+    let l:use = s:GetVar('LanguageClient_useVirtualText')
+    if l:use isnot v:null
+        return l:use
+    endif
+
+    if exists('*nvim_buf_set_virtual_text')
+        return 'All'
+    else
+        return 'No'
+    endif
 endfunction
 
 function! s:IsTrue(v) abort
@@ -125,11 +157,68 @@ function! s:Bufnames() abort
     return map(filter(range(0,bufnr('$')), 'buflisted(v:val)'), 'fnamemodify(bufname(v:val), '':p'')')
 endfunction
 
+" Clear and set virtual texts between line_start and line_end (exclusive).
+function! s:set_virtual_texts(buf_id, ns_id, line_start, line_end, virtual_texts) abort
+    " VirtualText: map with keys line, text and hl_group.
+
+    let l:prefix = s:GetVar('LanguageClient_virtualTextPrefix')
+    if l:prefix is v:null
+        let l:prefix = ''
+    endif
+
+    if !exists('*nvim_buf_set_virtual_text')
+        return
+    endif
+
+    call nvim_buf_clear_namespace(a:buf_id, a:ns_id, a:line_start, a:line_end)
+
+    for vt in a:virtual_texts
+        call nvim_buf_set_virtual_text(a:buf_id, a:ns_id, vt['line'], [[l:prefix . vt['text'], vt['hl_group']]], {})
+    endfor
+endfunction
+
+function! s:set_signs(file, signs_to_add, signs_to_delete) abort
+    " TODO: Optimize to update sign instead of add + remove sign.
+    for l:sign in a:signs_to_add
+        let l:line = l:sign['line'] + 1
+        execute ':sign place ' . l:sign['id'] . ' line=' . l:line . ' name=' . l:sign['name'] . ' file=' . a:file
+    endfor
+    for l:sign in a:signs_to_delete
+        execute ':sign unplace ' . l:sign['id']
+    endfor
+endfunction
+
+" Execute serious of ex commands.
+function! s:command(...) abort
+    for l:cmd in a:000
+        execute l:cmd
+    endfor
+endfunction
+
 function! s:getInput(prompt, default) abort
     call inputsave()
     let l:input = input(a:prompt, a:default)
     call inputrestore()
     return l:input
+endfunction
+
+function! s:inputlist(...) abort
+    call inputsave()
+    let l:selection = inputlist(a:000)
+    call inputrestore()
+    return l:selection
+endfunction
+
+function! s:selectionUI_funcref(source, sink) abort
+    if type(get(g:, 'LanguageClient_selectionUI')) is s:TYPE.funcref
+        call call(g:LanguageClient_selectionUI, [a:source, function(a:sink)])
+    elseif get(g:, 'LanguageClient_selectionUI', 'FZF') ==? 'FZF'
+                \ && get(g:, 'loaded_fzf')
+        call s:FZF(a:source, a:sink)
+    else
+        call s:Echoerr('Unsupported selection UI, use "FZF" or a funcref')
+        return
+    endif
 endfunction
 
 function! s:FZF(source, sink) abort
@@ -138,19 +227,20 @@ function! s:FZF(source, sink) abort
         return
     endif
 
-    if exists('LanguageClient_fzfOptions')
-        let l:options = LanguageClient_fzfOptions
-    elseif exists('*fzf#vim#with_preview')
-        let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
-    else
-        let l:options = []
+    let l:options = s:GetVar('LanguageClient_fzfOptions')
+    if l:options is v:null
+        if exists('*fzf#vim#with_preview')
+            let l:options = fzf#vim#with_preview('right:50%:hidden', '?').options
+        else
+            let l:options = []
+        endif
     endif
     call fzf#run(fzf#wrap({
                 \ 'source': a:source,
                 \ 'sink': function(a:sink),
                 \ 'options': l:options,
                 \ }))
-    if has('nvim')
+    if has('nvim') && !has('nvim-0.4')
         call feedkeys('i')
     endif
 endfunction
@@ -159,7 +249,7 @@ function! s:Edit(action, path) abort
     " If editing current file, push current location to jump list.
     let l:bufnr = bufnr(a:path)
     if l:bufnr == bufnr('%')
-        execute 'normal m`'
+        execute 'normal! m`'
         return
     endif
 
@@ -167,6 +257,7 @@ function! s:Edit(action, path) abort
     " Avoid the 'not saved' warning.
     if l:action ==# 'edit' && l:bufnr != -1
         execute 'buffer' l:bufnr
+        set buflisted
         return
     endif
 
@@ -180,11 +271,228 @@ function! s:MatchDelete(ids) abort
     endfor
 endfunction
 
+function! s:ApplySemanticHighlights(bufnr, ns_id, clears, highlights) abort
+    for clear in a:clears
+        call nvim_buf_clear_namespace(a:bufnr, a:ns_id, clear.line_start, clear.line_end)
+    endfor
+
+    for hl in a:highlights
+        call nvim_buf_add_highlight(a:bufnr, a:ns_id, hl.group, hl.line, hl.character_start, hl.character_end)
+    endfor
+endfunction
+
 " Batch version of nvim_buf_add_highlight
 function! s:AddHighlights(source, highlights) abort
     for hl in a:highlights
         call nvim_buf_add_highlight(0, a:source, hl.group, hl.line, hl.character_start, hl.character_end)
     endfor
+endfunction
+
+" Get an variable value.
+" Get variable from buffer local, or else global, or else default, or else v:null.
+function! s:GetVar(...) abort
+    let name = a:1
+
+    if exists('b:' . name)
+        return get(b:, name)
+    elseif exists('g:' . name)
+        return get(g:, name)
+    else
+        return get(a:000, 1, v:null)
+    endif
+endfunction
+
+" if the argument is a list, return it unchanged, otherwise return the list
+" containing the argument.
+function! s:ToList(x) abort
+    if type(a:x) == v:t_list
+        return a:x
+    else
+        return [ a:x ]
+    endif
+endfunction
+
+function! s:ShouldUseFloatWindow() abort
+    let floatingHoverEnabled = s:GetVar('LanguageClient_useFloatingHover', v:true)
+    return s:FLOAT_WINDOW_AVAILABLE && floatingHoverEnabled
+endfunction
+
+function! s:CloseFloatingHover() abort
+    if !exists('s:float_win_id')
+        return
+    endif
+
+    autocmd! plugin-LC-neovim-close-hover
+    let winnr = win_id2win(s:float_win_id)
+    if winnr == 0
+        return
+    endif
+    execute winnr . 'wincmd c'
+endfunction
+
+function! s:CloseFloatingHoverOnCursorMove(opened) abort
+    if getpos('.') == a:opened
+        " Just after opening floating window, CursorMoved event is run.
+        " To avoid closing floating window immediately, check the cursor
+        " was really moved
+        return
+    endif
+    autocmd! plugin-LC-neovim-close-hover
+    let winnr = win_id2win(s:float_win_id)
+    if winnr == 0
+        return
+    endif
+    execute winnr . 'wincmd c'
+endfunction
+
+function! s:CloseFloatingHoverOnBufEnter(bufnr) abort
+    let winnr = win_id2win(s:float_win_id)
+    if winnr == 0
+        " Float window was already closed
+        autocmd! plugin-LC-neovim-close-hover
+        return
+    endif
+    if winnr == winnr()
+        " Cursor is moving into floating window. Do not close it
+        return
+    endif
+    if bufnr('%') == a:bufnr
+        " When current buffer opened hover window, it's not another buffer. Skipped
+        return
+    endif
+    autocmd! plugin-LC-neovim-close-hover
+    execute winnr . 'wincmd c'
+endfunction
+
+" Open preview window. Window is open in:
+"   - Floating window on Neovim (0.4.0 or later)
+"   - popup window on vim (8.2 or later)
+"   - Preview window on Neovim (0.3.0 or earlier) or Vim
+function! s:OpenHoverPreview(bufname, lines, filetype) abort
+    " Use local variable since parameter is not modifiable
+    let lines = a:lines
+    let bufnr = bufnr('%')
+
+    let display_approach = ''
+    if s:ShouldUseFloatWindow()
+        let display_approach = 'float_win'
+    elseif s:POPUP_WINDOW_AVAILABLE && s:GetVar('LanguageClient_usePopupHover', v:true)
+        let display_approach = 'popup_win'
+    else
+        let display_approach = 'preview'
+    endif
+
+    if display_approach ==# 'float_win'
+        " When a language server takes a while to initialize and the user
+        " calls hover multiple times during that time (for example, via an
+        " automatic hover on cursor move setup), we will get a number of
+        " successive calls into this function resulting in many hover windows
+        " opened. This causes a number of issues, and we only really want one,
+        " so make sure that the previous hover window is closed.
+        call s:CloseFloatingHover()
+
+        let pos = getpos('.')
+
+        " Calculate width and height and give margin to lines
+        let width = 0
+        for index in range(len(lines))
+            let line = lines[index]
+            if line !=# ''
+                " Give a left margin
+                let line = ' ' . line
+            endif
+            let lw = strdisplaywidth(line)
+            if lw > width
+                let width = lw
+            endif
+            let lines[index] = line
+        endfor
+
+        " Give margin
+        let width += 1
+        let lines = [''] + lines + ['']
+        let height = len(lines)
+
+        " Calculate anchor
+        " Prefer North, but if there is no space, fallback into South
+        let bottom_line = line('w0') + winheight(0) - 1
+        if pos[1] + height <= bottom_line
+            let vert = 'N'
+            let row = 1
+        else
+            let vert = 'S'
+            let row = 0
+        endif
+
+        " Prefer West, but if there is no space, fallback into East
+        if pos[2] + width <= &columns
+            let hor = 'W'
+            let col = 0
+        else
+            let hor = 'E'
+            let col = 1
+        endif
+
+        let s:float_win_id = nvim_open_win(bufnr, v:true, {
+        \   'relative': 'cursor',
+        \   'anchor': vert . hor,
+        \   'row': row,
+        \   'col': col,
+        \   'width': width,
+        \   'height': height,
+        \   'style': s:GetVar('LanguageClient_floatingWindowStyle', 'minimal'),
+        \ })
+
+        execute 'noswapfile edit!' a:bufname
+
+        let float_win_highlight = s:GetVar('LanguageClient_floatingHoverHighlight', 'Normal:CursorLine')
+        execute printf('setlocal winhl=%s', float_win_highlight)
+    elseif display_approach ==# 'popup_win'
+        let pop_win_id = popup_atcursor(a:lines, {})
+        call setbufvar(winbufnr(pop_win_id), '&filetype', a:filetype)
+    elseif display_approach ==# 'preview'
+        execute 'silent! noswapfile pedit!' a:bufname
+        wincmd P
+    else
+        call s:Echoerr('Unknown display approach: ' . display_approach)
+    endif
+
+    if display_approach !=# 'popup_win'
+        setlocal buftype=nofile nobuflisted bufhidden=wipe nonumber norelativenumber signcolumn=no modifiable
+
+        if a:filetype isnot v:null
+            let &filetype = a:filetype
+        endif
+
+        call setline(1, lines)
+        setlocal nomodified nomodifiable
+
+        wincmd p
+    endif
+
+    if display_approach ==# 'float_win'
+        " Unlike preview window, :pclose does not close window. Instead, close
+        " hover window automatically when cursor is moved.
+        let call_after_move = printf('<SID>CloseFloatingHoverOnCursorMove(%s)', string(pos))
+        let call_on_bufenter = printf('<SID>CloseFloatingHoverOnBufEnter(%d)', bufnr)
+        augroup plugin-LC-neovim-close-hover
+            execute 'autocmd CursorMoved,CursorMovedI,InsertEnter <buffer> call ' . call_after_move
+            execute 'autocmd BufEnter * call ' . call_on_bufenter
+        augroup END
+    endif
+endfunction
+
+function! s:MoveIntoHoverPreview() abort
+    for bufnr in range(1, bufnr('$'))
+        if bufname(bufnr) ==# '__LanguageClient__'
+            let winnr = bufwinnr(bufnr)
+            if winnr != -1
+                execute winnr . 'wincmd w'
+            endif
+            return v:true
+        endif
+    endfor
+    return v:false
 endfunction
 
 let s:id = 1
@@ -234,16 +542,9 @@ function! s:HandleMessage(job, lines, event) abort
                 let l:method = get(l:message, 'method')
                 let l:params = get(l:message, 'params')
                 try
-                    if l:method ==# 'execute'
-                        for l:cmd in l:params
-                            execute l:cmd
-                        endfor
-                        let l:result = 0
-                    else
-                        let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
-                        let l:result = call(l:method, l:params)
-                    endif
-                    if l:id != v:null
+                    let l:params = type(l:params) == s:TYPE.list ? l:params : [l:params]
+                    let l:result = call(l:method, l:params)
+                    if l:id isnot v:null
                         call LanguageClient#Write(json_encode({
                                     \ 'jsonrpc': '2.0',
                                     \ 'id': l:id,
@@ -252,7 +553,7 @@ function! s:HandleMessage(job, lines, event) abort
                     endif
                 catch
                     let l:exception = v:exception
-                    if l:id != v:null
+                    if l:id isnot v:null
                         try
                             call LanguageClient#Write(json_encode({
                                         \ 'jsonrpc': '2.0',
@@ -290,7 +591,7 @@ function! s:HandleMessage(job, lines, event) abort
     elseif a:event ==# 'stderr'
         call s:Echoerr('LanguageClient stderr: ' . string(a:lines))
     elseif a:event ==# 'exit'
-        if type(a:lines) == type(0) && a:lines == 0
+        if type(a:lines) == type(0) && (a:lines == 0 || a:lines == 143)
             return
         endif
         call s:Debug('LanguageClient exited with: ' . string(a:lines))
@@ -319,7 +620,7 @@ function! s:HandleOutput(output, ...) abort
 
     if has_key(a:output, 'result')
         " let l:result = string(a:result)
-        " if l:result !=# 'v:null'
+        " if l:result isnot v:null
             " echomsg l:result
         " endif
         return get(a:output, 'result')
@@ -411,7 +712,20 @@ function! LanguageClient#Write(message) abort
     endif
 endfunction
 
+function! s:SkipSendingMessage() abort
+    if expand('%') =~# '^jdt://'
+        return v:false
+    endif
+
+    return &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
+endfunction
+
 function! LanguageClient#Call(method, params, callback, ...) abort
+    if s:SkipSendingMessage()
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:id = s:id
     let s:id = s:id + 1
     if a:callback is v:null
@@ -422,8 +736,9 @@ function! LanguageClient#Call(method, params, callback, ...) abort
     let l:skipAddParams = get(a:000, 0, v:false)
     let l:params = a:params
     if type(a:params) == s:TYPE.dict && !skipAddParams
+        " TODO: put inside context.
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
@@ -436,10 +751,15 @@ function! LanguageClient#Call(method, params, callback, ...) abort
 endfunction
 
 function! LanguageClient#Notify(method, params) abort
+    if s:SkipSendingMessage()
+        " call s:Debug('Skip sending message')
+        return
+    endif
+
     let l:params = a:params
     if type(params) == s:TYPE.dict
         let l:params = extend({
-                    \ 'buftype': &buftype,
+                    \ 'bufnr': bufnr(''),
                     \ 'languageId': &filetype,
                     \ }, l:params)
     endif
@@ -451,6 +771,9 @@ function! LanguageClient#Notify(method, params) abort
 endfunction
 
 function! LanguageClient#textDocument_hover(...) abort
+    if s:ShouldUseFloatWindow() && s:MoveIntoHoverPreview()
+        return
+    endif
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
@@ -463,14 +786,16 @@ function! LanguageClient#textDocument_hover(...) abort
     return LanguageClient#Call('textDocument/hover', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#closeFloatingHover() abort
+    call s:CloseFloatingHover()
+endfunction
+
 " Meta methods to go to various places.
 function! LanguageClient#findLocations(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
-                \ 'line': LSP#line(),
-                \ 'character': LSP#character(),
+                \ 'position': LSP#position(),
                 \ 'gotoCmd': v:null,
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
@@ -554,7 +879,7 @@ function! LanguageClient#workspace_symbol(...) abort
     return LanguageClient#Call('workspace/symbol', l:params, l:Callback)
 endfunction
 
-function! LanguageClient#textDocument_codeAction(...) abort
+function! LanguageClient#textDocument_codeLens(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'filename': LSP#filename(),
@@ -564,7 +889,28 @@ function! LanguageClient#textDocument_codeAction(...) abort
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('textDocument/codeLens', l:params, l:Callback)
+endfunction
+
+function! s:do_codeAction(mode, ...) abort
+    let l:Callback = get(a:000, 2, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ 'handle': s:IsFalse(l:Callback),
+                \ 'range': LSP#range(a:mode),
+                \ }
+    call extend(l:params, get(a:000, 1, {}))
     return LanguageClient#Call('textDocument/codeAction', l:params, l:Callback)
+endfunction
+
+function! LanguageClient#textDocument_visualCodeAction(...) range abort
+  call s:do_codeAction('v', a:000)
+endfunction
+
+function! LanguageClient#textDocument_codeAction(...) abort
+  call s:do_codeAction('n', a:000)
 endfunction
 
 function! LanguageClient#textDocument_completion(...) abort
@@ -593,6 +939,13 @@ function! LanguageClient#textDocument_formatting(...) abort
     return LanguageClient#Call('textDocument/formatting', l:params, l:Callback)
 endfunction
 
+function! LanguageClient#textDocument_formatting_sync(...) abort
+    let l:result = LanguageClient_runSync('LanguageClient#textDocument_formatting', {
+                \ 'handle': v:true,
+                \ })
+    return l:result isnot v:null
+endfunction
+
 function! LanguageClient#textDocument_rangeFormatting(...) abort
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
@@ -600,8 +953,8 @@ function! LanguageClient#textDocument_rangeFormatting(...) abort
                 \ 'text': LSP#text(),
                 \ 'line': LSP#line(),
                 \ 'character': LSP#character(),
-                \ 'LSP#range_start_line()': LSP#range_start_line(),
-                \ 'LSP#range_end_line()': LSP#range_end_line(),
+                \ 'range_start_line': LSP#range_start_line(),
+                \ 'range_end_line': LSP#range_end_line(),
                 \ 'handle': s:IsFalse(l:Callback),
                 \ }
     call extend(l:params, get(a:000, 0, {}))
@@ -623,18 +976,6 @@ function! LanguageClient#textDocument_rangeFormatting_sync(...) abort
                 \ 'handle': v:true,
                 \ })
     return l:result isnot v:null
-endfunction
-
-function! LanguageClient#rustDocument_implementations(...) abort
-    let l:params = {
-                \ 'filename': LSP#filename(),
-                \ 'text': LSP#text(),
-                \ 'line': LSP#line(),
-                \ 'character': LSP#character(),
-                \ }
-    call extend(l:params, a:0 >= 1 ? a:1 : {})
-    let l:Callback = a:0 >= 2 ? a:2 : v:null
-    return LanguageClient#Call('rustDocument/implementations', l:params, l:Callback)
 endfunction
 
 function! LanguageClient#textDocument_didOpen() abort
@@ -728,21 +1069,17 @@ function! s:ExecuteAutocmd(event) abort
 endfunction
 
 function! LanguageClient_runSync(fn, ...) abort
-    let s:LanguageClient_runSync_outputs = []
-    let l:arguments = add(a:000[:], s:LanguageClient_runSync_outputs)
+    let l:LanguageClient_runSync_outputs = []
+    let l:arguments = add(a:000[:], l:LanguageClient_runSync_outputs)
     call call(a:fn, l:arguments)
-    while len(s:LanguageClient_runSync_outputs) == 0
+    while len(l:LanguageClient_runSync_outputs) == 0
         sleep 100m
     endwhile
-    let l:output = remove(s:LanguageClient_runSync_outputs, 0)
+    let l:output = remove(l:LanguageClient_runSync_outputs, 0)
     return s:HandleOutput(l:output, v:true)
 endfunction
 
 function! LanguageClient#handleBufNewFile() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufNewFile', {
                     \ 'filename': LSP#filename(),
@@ -752,13 +1089,17 @@ function! LanguageClient#handleBufNewFile() abort
     endtry
 endfunction
 
-function! LanguageClient#handleBufReadPost() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
+function! LanguageClient#handleBufEnter() abort
+    if !exists('b:LanguageClient_isServerRunning')
+      let b:LanguageClient_isServerRunning = 0
+    endif
+
+    if !exists('b:LanguageClient_statusLineDiagnosticsCounts')
+      let b:LanguageClient_statusLineDiagnosticsCounts = {}
     endif
 
     try
-        call LanguageClient#Notify('languageClient/handleBufReadPost', {
+        call LanguageClient#Notify('languageClient/handleBufEnter', {
                     \ 'filename': LSP#filename(),
                     \ })
     catch
@@ -766,8 +1107,22 @@ function! LanguageClient#handleBufReadPost() abort
     endtry
 endfunction
 
+function! LanguageClient#handleFileType() abort
+    try
+        if s:Debounce(2, 'LanguageClient#handleFileType')
+            call LanguageClient#Notify('languageClient/handleFileType', {
+                        \ 'filename': LSP#filename(),
+                        \ 'position': LSP#position(),
+                        \ 'viewport': LSP#viewport(),
+                        \ })
+        endif
+    catch
+        call s:Debug('LanguageClient caught exception: ' . string(v:exception))
+    endtry
+endfunction
+
 function! LanguageClient#handleTextChanged() abort
-    if &buftype !=# '' || &filetype ==# ''
+    if &buftype !=# '' || &filetype ==# '' || expand('%') ==# ''
         return
     endif
 
@@ -782,10 +1137,6 @@ function! LanguageClient#handleTextChanged() abort
 endfunction
 
 function! LanguageClient#handleBufWritePost() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufWritePost', {
                     \ 'filename': LSP#filename(),
@@ -796,10 +1147,6 @@ function! LanguageClient#handleBufWritePost() abort
 endfunction
 
 function! LanguageClient#handleBufDelete() abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleBufDelete', {
                     \ 'filename': LSP#filename(),
@@ -809,6 +1156,8 @@ function! LanguageClient#handleBufDelete() abort
     endtry
 endfunction
 
+" TODO: Separate CursorMoved and ViewportChanged events. But after separating,
+" there will Mutex poison error.
 let s:last_cursor_line = -1
 function! LanguageClient#handleCursorMoved() abort
     let l:cursor_line = getcurpos()[1] - 1
@@ -817,17 +1166,12 @@ function! LanguageClient#handleCursorMoved() abort
     endif
     let s:last_cursor_line = l:cursor_line
 
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     try
         call LanguageClient#Notify('languageClient/handleCursorMoved', {
                     \ 'buftype': &buftype,
                     \ 'filename': LSP#filename(),
-                    \ 'line': l:cursor_line,
-                    \ 'LSP#visible_line_start()': LSP#visible_line_start(),
-                    \ 'LSP#visible_line_end()': LSP#visible_line_end(),
+                    \ 'position': LSP#position(),
+                    \ 'viewport': LSP#viewport(),
                     \ })
     catch
         call s:Debug('LanguageClient caught exception: ' . string(v:exception))
@@ -886,10 +1230,6 @@ function! LanguageClient_NCM2OnComplete(context) abort
 endfunction
 
 function! LanguageClient#explainErrorAtPoint(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:Callback = get(a:000, 1, v:null)
     let l:params = {
                 \ 'buftype': &buftype,
@@ -960,10 +1300,6 @@ function! LanguageClient#complete(findstart, base) abort
 endfunction
 
 function! LanguageClient#textDocument_signatureHelp(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'filename': LSP#filename(),
                 \ 'line': LSP#line(),
@@ -976,10 +1312,6 @@ function! LanguageClient#textDocument_signatureHelp(...) abort
 endfunction
 
 function! LanguageClient#workspace_applyEdit(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'edit': {},
                 \ }
@@ -989,10 +1321,6 @@ function! LanguageClient#workspace_applyEdit(...) abort
 endfunction
 
 function! LanguageClient#workspace_executeCommand(command, ...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
     let l:params = {
                 \ 'command': a:command,
                 \ 'arguments': get(a:000, 0, v:null),
@@ -1019,6 +1347,10 @@ function! LanguageClient#serverStatusMessage() abort
     return g:LanguageClient_serverStatusMessage
 endfunction
 
+function! LanguageClient#isServerRunning() abort
+    return b:LanguageClient_isServerRunning
+endfunction
+
 " Example function usable for status line.
 function! LanguageClient#statusLine() abort
     if g:LanguageClient_serverStatusMessage ==# ''
@@ -1026,6 +1358,10 @@ function! LanguageClient#statusLine() abort
     endif
 
     return '[' . g:LanguageClient_serverStatusMessage . ']'
+endfunction
+
+function! LanguageClient#statusLineDiagnosticsCounts() abort
+    return b:LanguageClient_statusLineDiagnosticsCounts
 endfunction
 
 function! LanguageClient#cquery_base(...) abort
@@ -1052,14 +1388,21 @@ function! LanguageClient#cquery_vars(...) abort
     return call('LanguageClient#findLocations', [l:params] + a:000[1:])
 endfunction
 
-function! LanguageClient#java_classFileContent(...) abort
-    if &buftype !=# '' || &filetype ==# ''
-        return
-    endif
-
+function! LanguageClient#java_classFileContents(...) abort
     let l:params = get(a:000, 0, {})
     let l:Callback = get(a:000, 1, v:null)
-    return LanguageClient#Call('java/classFileContent', l:params, l:Callback)
+    return LanguageClient#Call('java/classFileContents', l:params, l:Callback)
+endfunction
+
+function! LanguageClient#handleCodeLensAction(...) abort
+    let l:Callback = get(a:000, 1, v:null)
+    let l:params = {
+                \ 'filename': LSP#filename(),
+                \ 'line': LSP#line(),
+                \ 'character': LSP#character(),
+                \ }
+    call extend(l:params, get(a:000, 0, {}))
+    return LanguageClient#Call('LanguageClient/handleCodeLensAction', l:params, l:Callback)
 endfunction
 
 function! LanguageClient_contextMenuItems() abort
@@ -1088,12 +1431,15 @@ endfunction
 
 function! LanguageClient_contextMenu() abort
     let l:options = keys(LanguageClient_contextMenuItems())
-
-    if get(g:, 'loaded_fzf') && get(g:, 'LanguageClient_fzfContextMenu', 1)
-        return fzf#run(fzf#wrap({
-                    \ 'source': l:options,
-                    \ 'sink': function('LanguageClient_handleContextMenuItem'),
-                    \ }))
+    let l:useSelectionUI = get(g:, 'LanguageClient_selectionUIContextMenu',
+				\ get(g:, 'LanguageClient_fzfContextMenu', 1))
+    if l:useSelectionUI
+            \ && (type(get(g:, 'LanguageClient_selectionUI', v:null)) is s:TYPE.funcref
+                \ || (get(g:, 'LanguageClient_selectionUI', v:null) ==? 'FZF'
+                    \ && get(g:, 'loaded_fzf')
+                \ )
+            \ )
+        return s:selectionUI_funcref(l:options, function('LanguageClient_handleContextMenuItem'))
     endif
 
     let l:selections = map(copy(l:options), { key, val -> printf('%d) %s', key + 1, val ) })
@@ -1107,6 +1453,70 @@ function! LanguageClient_contextMenu() abort
     endif
 
     return LanguageClient_handleContextMenuItem(l:options[l:selection - 1])
+endfunction
+
+function! LanguageClient_showSemanticScopes(...) abort
+    let l:params = get(a:000, 0, {})
+    let l:Callback = get(a:000, 1, function('s:print_semantic_scopes'))
+
+    return LanguageClient#Call('languageClient/semanticScopes', l:params, l:Callback)
+endfunction
+
+function! s:print_semantic_scopes(response) abort
+    let l:scope_mappings = a:response.result
+
+    let l:msg = ''
+    for mapping in l:scope_mappings
+        let l:msg .= "Highlight Group:\n"
+        let l:msg .= ' ' . l:mapping.hl_group . "\n"
+
+        let l:msg .= "Semantic Scope:\n"
+        let l:spaces = ' '
+        for l:scope_name in l:mapping.scope
+            let l:msg .= l:spaces . l:scope_name . "\n"
+            let l:spaces .= ' '
+        endfor
+        let l:msg .= "\n"
+    endfor
+
+    echo l:msg
+endfunction
+
+function! LanguageClient#showSemanticHighlightSymbols(...) abort
+    let l:params = get(a:000, 0, {})
+    let l:Callback = get(a:000, 1, v:null)
+
+    return LanguageClient#Call('languageClient/showSemanticHighlightSymbols', l:params, l:Callback)
+endfunction
+
+function! LanguageClient_showCursorSemanticHighlightSymbols(...) abort
+    let l:params = get(a:000, 0, {})
+    let l:Callback = get(a:000, 1, function('s:print_cursor_semantic_symbol'))
+
+    return LanguageClient#showSemanticHighlightSymbols(l:params, l:Callback)
+endfunction
+
+function! s:print_cursor_semantic_symbol(response) abort
+    let l:symbols = a:response.result
+    let l:lines = []
+
+    for symbol in l:symbols
+        if l:symbol.line + 1 == line('.') &&
+                    \ symbol.character_start < col('.') &&
+                    \ col('.') <= symbol.character_end
+            let l:spaces = ''
+            for scope_name in l:symbol.scope
+                call add(l:lines, l:spaces . l:scope_name)
+                let l:spaces .= ' '
+            endfor
+        endif
+    endfor
+
+    if len(l:lines) > 0
+        call s:OpenHoverPreview('SemanticScopes', l:lines, 'text')
+    else
+        call s:Echowarn('No Symbol Under Cursor or No Semantic Highlighting')
+    endif
 endfunction
 
 function! LanguageClient#debugInfo(...) abort
