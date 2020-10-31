@@ -17,11 +17,11 @@ fi
 
 eval "$(nodenv init -)"
 
-# After nodenv sets up the path
+# NOTE: this should occur after `nodenv init`
+# NOTE: keep these in reverse priority order
+export PATH="$HOME/.yarn/bin:$PATH" # manually installed `yarn` binary
+export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
-export PATH="$HOME/.yarn/bin:$PATH" # lol I dunno
-export PATH="$HOME/.config/yarn/global/node_modules/.bin:$PATH" # globally installed yarn node module binaries
-export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries, take 2 lol I dunno
 
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=$AWS_DEFAULT_REGION
