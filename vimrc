@@ -292,9 +292,6 @@ let g:javascript_plugin_flow = 1
 " vim-jsx
 let g:jsx_ext_required = 0
 
-" vim-test
-let test#runners = {'JavaScript': ['GoodeggsTest']}
-
 " LanguageClient
 let g:LanguageClient_serverCommands = {
     \ 'javascript':      ['flow-language-server', '--stdio', '--try-flow-bin'],
