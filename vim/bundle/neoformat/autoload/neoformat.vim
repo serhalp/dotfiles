@@ -43,7 +43,7 @@ function! s:neoformat(bang, user_input, start_line, end_line) abort
     for formatter in formatters
 
         if &formatprg != '' && split(&formatprg)[0] ==# formatter
-                    \ && get(g:, 'neoformat_try_formatprg', 0)
+                    \ && neoformat#utils#var('neoformat_try_formatprg')
             call neoformat#utils#log('using formatprg')
             let fmt_prg_def = split(&formatprg)
             let definition = {
@@ -102,6 +102,11 @@ function! s:neoformat(bang, user_input, start_line, end_line) abort
         call neoformat#utils#log(v:shell_error)
 
         let process_ran_succesfully = index(cmd.valid_exit_codes, v:shell_error) != -1
+        
+        if cmd.stderr_log != ''
+            call neoformat#utils#log('stderr output redirected to file' . cmd.stderr_log)
+            call neoformat#utils#log_file_content(cmd.stderr_log)
+        endif
         if process_ran_succesfully
             " 1. append the lines that are before and after the formatterd content
             let lines_after = getbufline(bufnr('%'), a:end_line + 1, '$')
@@ -120,7 +125,7 @@ function! s:neoformat(bang, user_input, start_line, end_line) abort
 
                 let endmsg = 'no change necessary with ' . cmd.name
             endif
-            if !get(g:, 'neoformat_run_all_formatters', 0)
+            if !neoformat#utils#var('neoformat_run_all_formatters')
                 return neoformat#utils#msg(endmsg)
             endif
             call neoformat#utils#log('running next formatter')
@@ -141,7 +146,7 @@ function! s:neoformat(bang, user_input, start_line, end_line) abort
 endfunction
 
 function! s:get_enabled_formatters(filetype) abort
-    if &formatprg != '' && get(g:, 'neoformat_try_formatprg', 0)
+    if &formatprg != '' && neoformat#utils#var('neoformat_try_formatprg')
         call neoformat#utils#log('adding formatprg to enabled formatters')
         let format_prg_exe = [split(&formatprg)[0]]
     else
@@ -229,6 +234,8 @@ function! s:generate_cmd(definition, filetype) abort
 
     let no_append = get(a:definition, 'no_append', 0)
     let using_stdin = get(a:definition, 'stdin', 0)
+    let using_stderr = get(a:definition, 'stderr', 0)
+    let stderr_log = ''
 
     let filename = expand('%:t')
 
@@ -250,10 +257,25 @@ function! s:generate_cmd(definition, filetype) abort
     let _fullcmd = join(inline_environment, ' ') . ' ' . executable . ' ' . join(args_expanded) . ' ' . (no_append ? '' : path)
     " make sure there aren't any double spaces in the cmd
     let fullcmd = join(split(_fullcmd))
+    if !using_stderr
+        if neoformat#utils#should_be_verbose()
+            let stderr_log = expand(tmp_dir . '/stderr.log')
+            let fullcmd = fullcmd . ' 2> ' . stderr_log
+        else
+            if (has('win32') || has('win64'))
+                let stderr_log = ''
+                let fullcmd = fullcmd . ' 2> ' . 'NUL'
+            else
+                let stderr_log = ''
+                let fullcmd = fullcmd . ' 2> ' . '/dev/null'
+            endif
+        endif
+    endif
 
     return {
         \ 'exe':       fullcmd,
         \ 'stdin':     using_stdin,
+        \ 'stderr_log': stderr_log,
         \ 'name':      a:definition.exe,
         \ 'replace':   get(a:definition, 'replace', 0),
         \ 'tmp_file_path': path,
@@ -279,17 +301,17 @@ function! s:basic_format() abort
         let g:neoformat_basic_format_trim = 0
     endif
 
-    if g:neoformat_basic_format_align
+    if neoformat#utils#var('neoformat_basic_format_align')
         call neoformat#utils#log('aligning with basic formatter')
         let v = winsaveview()
         silent! execute 'normal gg=G'
         call winrestview(v)
     endif
-    if g:neoformat_basic_format_retab
+    if neoformat#utils#var('neoformat_basic_format_retab')
         call neoformat#utils#log('converting tabs with basic formatter')
         retab
     endif
-    if g:neoformat_basic_format_trim
+    if neoformat#utils#var('neoformat_basic_format_trim')
         call neoformat#utils#log('trimming whitespace with basic formatter')
         " http://stackoverflow.com/q/356126
         let search = @/
