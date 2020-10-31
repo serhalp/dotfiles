@@ -252,6 +252,11 @@ let g:goldenview__enable_at_startup=1
 let g:goldenview__enable_default_mapping=0
 
 " neomake
+" let js_eslint_maker = {
+"     \ 'args': ['-f', 'compact', '--resolve-plugins-relative-to=node_modules/@goodeggs/toolkit', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0'],
+"     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
+"     \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
+" \ }
 let js_eslint_maker = {
     \ 'args': ['-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0'],
     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
@@ -261,9 +266,12 @@ let g:neomake_javascript_eslint_maker = js_eslint_maker
 let g:neomake_typescript_eslint_maker = js_eslint_maker
 let g:neomake_typescriptreact_eslint_maker = js_eslint_maker
 let g:neomake_typescriptreact_tsc_maker = neomake#makers#ft#typescript#tsc()
-let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
-let g:neomake_typescript_enabled_makers = ['eslint', 'tsc']
-let g:neomake_typescriptreact_enabled_makers = ['eslint', 'tsc']
+" let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
+let g:neomake_javascript_enabled_makers = ['eslint']
+" let g:neomake_typescript_enabled_makers = ['eslint', 'tsc']
+let g:neomake_typescript_enabled_makers = ['eslint']
+" let g:neomake_typescriptreact_enabled_makers = ['eslint', 'tsc']
+let g:neomake_typescriptreact_enabled_makers = ['eslint']
 let g:neomake_eslint_project_maker = {
     \ 'exe': 'yarn',
     \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0,mocha/no-exclusive-tests:0'],
@@ -271,12 +279,14 @@ let g:neomake_eslint_project_maker = {
     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
     \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
 \ }
-let g:neomake_enabled_makers = ['eslint_project', 'flow']
+" let g:neomake_enabled_makers = ['eslint_project', 'flow']
 let g:neomake_open_list = 2
 call neomake#configure#automake('rw')
 
 " neoformat
 let g:neoformat_typescriptreact_prettier = neoformat#formatters#typescript#prettier()
+let g:neoformat_enabled_javascript = ['prettier']
+let g:neoformat_enabled_typescript = ['prettier']
 let g:neoformat_enabled_typescriptreact = ['prettier']
 autocmd! BufWritePre *.js,*.ts,*.jsx,*.tsx Neoformat
 
@@ -302,7 +312,7 @@ let g:LanguageClient_serverCommands = {
     \ }
 let g:LanguageClient_changeThrottle = 0.50
 let g:LanguageClient_hoverPreview = "never"
-let g:LanguageClient_diagnosticsEnable = 0 " Don't let languageclient do any linting
+let g:LanguageClient_diagnosticsEnable = 1
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> gr :call LanguageClient_textDocument_references()<CR>
