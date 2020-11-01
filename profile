@@ -17,6 +17,14 @@ else
   echo ".sekret FILE NOT FOUND - skipping!"
 fi
 
+# Retrieve securely stored passwords and API keys from keychain
+get_secure_goodeggs_value () {
+  security find-generic-password -a goodeggs -s $1 -g -w
+}
+
+export HOMEBREW_GITHUB_API_TOKEN="$(get_secure_goodeggs_value homebrew_github_api)"
+export NPM_AUTH="$(get_secure_goodeggs_value npm)"
+
 eval "$(nodenv init -)"
 
 # NOTE: this should occur after `nodenv init`
