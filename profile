@@ -13,6 +13,8 @@ export BREW_PREFIX=`brew --prefix`
 
 if [ -f ~/.sekret ]; then
   source ~/.sekret
+else
+  echo ".sekret FILE NOT FOUND - skipping!"
 fi
 
 eval "$(nodenv init -)"
@@ -28,6 +30,8 @@ export AWS_REGION=$AWS_DEFAULT_REGION
 
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
+else
+  echo "brew bash-completion formula not found - skipping!"
 fi
 
 if [ -f ~/.git-prompt.sh ]; then
@@ -63,6 +67,8 @@ if [ -f ~/.git-prompt.sh ]; then
         else echo "'$CYAN'"$(__git_ps1 "(%s)")
         fi)'$BLUE" \W "$PROMPT_COLOR"\$ "$LIGHT_GRAY
   }
+else
+  echo "~/.git-prompt.sh not found - skipping!"
 fi
 
 eval "$(direnv hook bash)"
