@@ -1,3 +1,4 @@
 always-auth=true
 strict-ssl=true
 loglevel=info
+//npm.goodeggs.com/:_authToken=${NPM_AUTH}
