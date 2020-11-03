@@ -85,7 +85,7 @@ ops() {
 }
 
 clone() {
-  git clone git@github.com:goodeggs/$1.git
+  p && git clone git@github.com:goodeggs/$1.git && p $1
 }
 
 p() {
