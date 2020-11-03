@@ -86,6 +86,10 @@ ops() {
   cd ~/Projects/ops-super/apps/$dir_name
 }
 
+clone() {
+  git clone git@github.com:goodeggs/$1.git
+}
+
 p() {
   cd ~/Projects/$1
 }
