@@ -79,8 +79,6 @@ else
   echo "~/.git-prompt.sh not found - skipping!"
 fi
 
-eval "$(direnv hook bash)"
-
 ops() {
   local dir_name=$(echo $1 | sed -E 's/po-/purchase-orders-/; s/f-?o-/fulfillment-options-/')
   cd ~/Projects/ops-super/apps/$dir_name
