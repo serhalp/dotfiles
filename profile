@@ -35,6 +35,8 @@ export PATH="$HOME/.yarn/bin:$PATH" # manually installed `yarn` binary
 export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
 
+export PATH="$HOME/.cargo/bin:$PATH"
+
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_REGION=$AWS_DEFAULT_REGION
 
@@ -97,8 +99,6 @@ p() {
 source ~/.bash_aliases
 
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
-
-export PATH="$HOME/.cargo/bin:$PATH"
 
 export NODE_EXTRA_CA_CERTS="$HOME/Library/Application Support/mkcert/rootCA.pem"
 
