@@ -4,6 +4,8 @@ export HISTSIZE=100000                   # big big history
 export HISTFILESIZE=100000               # big big history
 shopt -s histappend                      # append to history, don't overwrite it
 
+export BASH_SILENCE_DEPRECATION_WARNING=1
+
 export EDITOR='nvim'
 export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
