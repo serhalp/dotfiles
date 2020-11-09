@@ -101,3 +101,6 @@ test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shel
 export PATH="$HOME/.cargo/bin:$PATH"
 
 export NODE_EXTRA_CA_CERTS="$HOME/Library/Application Support/mkcert/rootCA.pem"
+
+# gnupg doesn't seem to work on OS X without this
+export GPG_TTY=$(tty)
