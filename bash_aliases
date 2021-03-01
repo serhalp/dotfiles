@@ -18,3 +18,6 @@ alias legacy="aws-vault exec --session-ttl=24h --assume-role-ttl=1h legacy --"
 
 alias prod="ranch -f .ranch.production.yaml"
 alias stg="ranch -f .ranch.staging.yaml"
+alias pretty-ranch-logs="sed 's/^.* {/{/' | bunyan"
+
+alias lintfix-modified="git ls-files --modified | xargs getk run fix-es"
