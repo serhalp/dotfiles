@@ -1,6 +1,15 @@
 "Import
-syntax keyword typescriptImport                from as import
+syntax keyword typescriptImport                from as
+syntax keyword typescriptImport                import
+  \ nextgroup=typescriptImportType
+  \ skipwhite
+syntax keyword typescriptImportType            type
+  \ contained
 syntax keyword typescriptExport                export
+  \ nextgroup=typescriptExportType
+  \ skipwhite
+syntax match typescriptExportType              /\<type\s*{\@=/
+  \ contained skipwhite skipempty skipnl
 syntax keyword typescriptModule                namespace module
 
 "this
@@ -18,16 +27,12 @@ syntax keyword typescriptIdentifier            arguments this super
   \ nextgroup=@afterIdentifier
 
 syntax keyword typescriptVariable              let var
-  \ nextgroup=typescriptVariableDeclaration
-  \ skipwhite skipempty skipnl
+  \ nextgroup=@typescriptVariableDeclarations
+  \ skipwhite skipempty
 
 syntax keyword typescriptVariable const
-  \ nextgroup=typescriptEnum,typescriptVariableDeclaration
-  \ skipwhite
-
-syntax match typescriptVariableDeclaration /[A-Za-z_$]\k*/
-  \ nextgroup=typescriptTypeAnnotation,typescriptAssign
-  \ contained skipwhite skipempty skipnl
+  \ nextgroup=typescriptEnum,@typescriptVariableDeclarations
+  \ skipwhite skipempty
 
 syntax region typescriptEnum matchgroup=typescriptEnumKeyword start=/enum / end=/\ze{/
   \ nextgroup=typescriptBlock
@@ -56,7 +61,7 @@ syntax keyword typescriptRepeat                do while for nextgroup=typescript
 syntax keyword typescriptRepeat                for nextgroup=typescriptLoopParen,typescriptAsyncFor skipwhite skipempty
 syntax keyword typescriptBranch                break continue containedin=typescriptBlock
 syntax keyword typescriptCase                  case nextgroup=@typescriptPrimitive skipwhite containedin=typescriptBlock
-syntax keyword typescriptDefault               default containedin=typescriptBlock nextgroup=@typescriptValue,typescriptClassKeyword skipwhite oneline
+syntax keyword typescriptDefault               default containedin=typescriptBlock nextgroup=@typescriptValue,typescriptClassKeyword,typescriptInterfaceKeyword skipwhite oneline
 syntax keyword typescriptStatementKeyword      with
 syntax keyword typescriptStatementKeyword      yield skipwhite nextgroup=@typescriptValue containedin=typescriptBlock
 syntax keyword typescriptStatementKeyword      return skipwhite contained nextgroup=@typescriptValue containedin=typescriptBlock
@@ -69,15 +74,15 @@ syntax keyword typescriptAsyncFor              await nextgroup=typescriptLoopPar
 
 syntax region  typescriptLoopParen             contained matchgroup=typescriptParens
   \ start=/(/ end=/)/
-  \ contains=typescriptVariable,typescriptForOperator,typescriptEndColons,@typescriptValue
+  \ contains=typescriptVariable,typescriptForOperator,typescriptEndColons,@typescriptValue,@typescriptComments
   \ nextgroup=typescriptBlock
   \ skipwhite skipempty
 syntax region  typescriptConditionalParen             contained matchgroup=typescriptParens
   \ start=/(/ end=/)/
-  \ contains=@typescriptValue
+  \ contains=@typescriptValue,@typescriptComments
   \ nextgroup=typescriptBlock
   \ skipwhite skipempty
-syntax match   typescriptEndColons             /[;,]/
+syntax match   typescriptEndColons             /[;,]/ contained
 
 syntax keyword typescriptAmbientDeclaration declare nextgroup=@typescriptAmbients
   \ skipwhite skipempty

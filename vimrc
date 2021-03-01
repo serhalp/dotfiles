@@ -227,6 +227,7 @@ set hidden                        " Allow edited buffers to exist behind the sce
 set noequalalways                 " Disable automatic window resizing on close and split.
 set keywordprg=npm\ docs          " Open docs for NPM module under cursor with `K`.
 set title                         " Set terminal title to open buffer file path.
+set re=0                          " Select regular expression engine automatically
 
 " Highlight current line and column
 set cursorline
@@ -306,3 +307,6 @@ let g:LanguageClient_diagnosticsEnable = 0 " Don't let languageclient do any lin
 nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
 nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
 nnoremap <silent> gr :call LanguageClient_textDocument_references()<CR>
+
+" YATS
+let g:yats_host_keyword = 1

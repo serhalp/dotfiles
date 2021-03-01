@@ -13,7 +13,7 @@ syntax match   typescriptClassName             contained /\K\k*/
 
 syntax region typescriptClassTypeParameter
   \ start=/</ end=/>/
-  \ contains=typescriptTypeParameter
+  \ contains=@typescriptTypeParameterCluster
   \ nextgroup=typescriptClassBlock,typescriptClassExtends
   \ contained skipwhite skipnl
 
@@ -28,7 +28,7 @@ syntax match   typescriptClassHeritage         contained /\v(\k|\.|\(|\))+/
 syntax region typescriptClassTypeArguments matchgroup=typescriptTypeBrackets
   \ start=/</ end=/>/
   \ contains=@typescriptType
-  \ nextgroup=typescriptClassBlock,typescriptMixinComma
+  \ nextgroup=typescriptClassExtends,typescriptClassBlock,typescriptMixinComma
   \ contained skipwhite skipnl
 
 syntax match typescriptMixinComma /,/ contained nextgroup=typescriptClassHeritage skipwhite skipnl
@@ -45,10 +45,10 @@ syntax match   typescriptInterfaceName             contained /\k\+/
   \ skipwhite skipnl
 syntax region typescriptInterfaceTypeParameter
   \ start=/</ end=/>/
-  \ contains=typescriptTypeParameter
+  \ contains=@typescriptTypeParameterCluster
   \ nextgroup=typescriptObjectType,typescriptInterfaceExtends
   \ contained
-  \ skipwhite
+  \ skipwhite skipnl
 
 syntax keyword typescriptInterfaceExtends          contained extends nextgroup=typescriptInterfaceHeritage skipwhite skipnl
 
