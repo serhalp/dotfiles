@@ -32,7 +32,7 @@ if has("autocmd")
   augroup vimrcEx
   au!
 
-  " For all text files set 'textwidth' to 78 characters.
+  " Custom text width for plaintext files
   autocmd FileType text setlocal textwidth=90
 
   " When vimrc is edited, reload it
@@ -46,6 +46,13 @@ if has("autocmd")
     \   exe "normal g`\"" |
     \ endif
   augroup END
+
+  " Persist folds across file loads
+  " augroup remember_folds
+  "     autocmd!
+  "     autocmd BufWinLeave ?* mkview | filetype detect
+  "     autocmd BufWinEnter ?* silent loadview | filetype detect
+  " augroup END
 endif " has("autocmd")
 
 " Open a NERDtree when loading vim with no files.
@@ -192,6 +199,12 @@ nnoremap <leader>f :let @* = expand("%")<CR>
 " Copy `yarn runtest --watch <current filename>` to system clipboard
 nnoremap <leader>tf :let @* = "yarn run runtest --watch " . expand("%")<CR>
 
+" By default, * and # respect 'ignorecase'. This mapping forces these commands
+" to search case sensitively, which is usually what you want when searching
+" code with * or #.
+nnoremap <silent> * /\C\<<C-R>=expand('<cword>')<CR>\><CR>
+nnoremap <silent> # ?\C\<<C-R>=expand('<cword>')<CR>\><CR>
+
 " Custom options
 set mouse=a                       " Enable mouse in all modes
 set backspace=indent,eol,start    " Allow backspacing over everything in insert mode
@@ -209,9 +222,9 @@ set magic                         " Use regular expression magic mode (see help)
 set noshowmatch                   " Turn off matching bracket highlighting
 set scrolloff=5                   " Always show at least 5 lines past the cursor
 set wildmenu                      " Use advanced ex mode completion
-set undodir="~/.vim/runtime/undo" " Where to store persistent undo info
+set undodir=~/.vim/runtime/undo   " Where to store persistent undo info
 set undofile                      " Turn on persistent undo
-set backupskip="/tmp/*"           " Don't create backup files for these.
+set backupskip=/tmp/*             " Don't create backup files for these.
 set expandtab                     " Always use spaces; no tabs
 set shiftwidth=2                  " Number of spaces in one level of indentation
 set tabstop=8                     " Number of spaces to display where tabs are found
