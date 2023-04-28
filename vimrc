@@ -2,9 +2,6 @@
 " This must be first, because it changes other options as a side effect.
 set nocompatible
 
-" Enable pathogen.
-execute pathogen#infect()
-
 if has("vms")
   set nobackup  " do not keep a backup file, use versions instead
 else
@@ -55,13 +52,6 @@ if has("autocmd")
   " augroup END
 endif " has("autocmd")
 
-" Open a NERDtree when loading vim with no files.
-autocmd StdinReadPre * let s:std_in=1
-autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-
-" Override color scheme backgroud colour.
-" autocmd ColorScheme * highlight Normal guibg=#242424
-
 " Convenient command to see the difference between the current buffer and the
 " file it was loaded from, thus the changes you made.
 command! DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
@@ -92,13 +82,6 @@ map <leader>e :rightbelow split ~/.vimrc<CR>
 
 " Miscellaneous
 map Q gq
-
-" Map enter to :make! ('!' makes it not jump to the first error/warning)
-" FIXME: Find a way to only jump to errors and not warnings.
-" map <C-M> :make!<CR>
-
-" Ctrl-F12 to regenerate ctags database
-" map <C-F12> :!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q --languages=c++ .<CR>
 
 " Use Ctrl-H to switch from index.* to test.* and vice versa.
 map <C-H> :e %:p:s,test.,X123X,:s,index.,test.,:s,X123X,index.,<CR>
@@ -140,6 +123,7 @@ noremap <leader>w :close<CR>
 noremap <leader>W :only<CR>
 
 " Toggle whether next/previous item mappings are for quickfix list or location list
+" TODO(serhalp) This is stupid. Delete it and come up with a better strategy.
 command! ToggleListMappings call ToggleListMappings()
 function! ToggleListMappings()
   if !exists('w:listMappingsMode')
@@ -163,9 +147,6 @@ nmap <M-j> mz:m+<cr>`z
 nmap <M-k> mz:m-2<cr>`z
 vmap <M-j> :m'>+<cr>`<my`>mzgv`yo`z
 vmap <M-k> :m'<-2<cr>`>my`<mzgv`yo`z
-
-" Global grep for word under cursor with Alt-* (Alt-Shift-*)
-noremap <M-*> :Ag "<C-R><C-W>"<CR>
 
 " Copy current filename to system clipboard
 nnoremap <leader>f :let @* = expand("%")<CR>
@@ -225,46 +206,6 @@ set clipboard=unnamed
 
 " --- PLUGIN CONFIGURATION
 
-" CtrlP
-let g:ctrlp_user_command = ['.git/', 'git ls-files -co --exclude-standard %s']
-let g:ctrlp_use_caching = 0
-
-" Ag
-let g:ag_highlight=1
-
-" goldenview
-let g:goldenview__enable_at_startup=1
-let g:goldenview__enable_default_mapping=0
-
-" neomake
-let js_eslint_maker = {
-    \ 'args': ['-f', 'compact', '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'],
-    \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
-    \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
-\ }
-let g:neomake_javascript_eslint_maker = js_eslint_maker
-let g:neomake_typescript_eslint_maker = js_eslint_maker
-let g:neomake_typescriptreact_eslint_maker = js_eslint_maker
-let g:neomake_typescriptreact_tsc_maker = neomake#makers#ft#typescript#tsc()
-let g:neomake_javascript_enabled_makers = ['eslint', 'flow']
-let g:neomake_typescript_enabled_makers = ['eslint', 'tsc']
-let g:neomake_typescriptreact_enabled_makers = ['eslint', 'tsc']
-let g:neomake_eslint_project_maker = {
-    \ 'exe': 'yarn',
-    \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'],
-    \ 'append_file': 0,
-    \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
-    \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
-\ }
-let g:neomake_enabled_makers = ['eslint_project', 'flow']
-let g:neomake_open_list = 2
-call neomake#configure#automake('rw')
-
-" neoformat
-let g:neoformat_typescriptreact_prettier = neoformat#formatters#typescript#prettier()
-let g:neoformat_enabled_typescriptreact = ['prettier']
-autocmd! BufWritePre *.js,*.ts,*.jsx,*.tsx Neoformat
-
 " Haskell
 let hs_highlight_boolean = 1
 let hs_highlight_types = 1
@@ -276,21 +217,6 @@ let g:javascript_plugin_flow = 1
 
 " vim-jsx
 let g:jsx_ext_required = 0
-
-" LanguageClient
-let g:LanguageClient_serverCommands = {
-    \ 'javascript':      ['flow-language-server', '--stdio', '--try-flow-bin'],
-    \ 'javascript.jsx':  ['flow-language-server', '--stdio', '--try-flow-bin'],
-    \ 'typescript':      ['typescript-language-server', '--stdio'],
-    \ 'typescriptreact': ['typescript-language-server', '--stdio'],
-    \ 'typescript.tsx':  ['typescript-language-server', '--stdio'],
-    \ }
-let g:LanguageClient_changeThrottle = 0.50
-let g:LanguageClient_hoverPreview = "never"
-let g:LanguageClient_diagnosticsEnable = 0 " Don't let languageclient do any linting
-nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
-nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
-nnoremap <silent> gr :call LanguageClient_textDocument_references()<CR>
 
 " YATS
 let g:yats_host_keyword = 1
