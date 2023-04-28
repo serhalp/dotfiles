@@ -11,16 +11,3 @@ alias agnt="ag --ignore='*test*' --ignore='*unit*' --ignore='*spec*' --ignore='*
 alias pr="hub pull-request -o"
 
 alias yesand="(test \$? -eq 0) &&"
-
-# Good Eggs specific
-
-alias dev="aws-vault exec --session-ttl=24h --assume-role-ttl=1h dev --"
-alias prod="aws-vault exec --session-ttl=24h --assume-role-ttl=1h prod --"
-alias legacy="aws-vault exec --session-ttl=24h --assume-role-ttl=1h legacy --"
-
-alias prod="ranch -f .ranch.production.yaml"
-alias stg="ranch -f .ranch.staging.yaml"
-# requires GNU sed - `brew install coreutils`
-alias pretty-ranch-logs="sed -u 's/^.* {/{/' | pino-pretty"
-
-alias lintfix-modified="git ls-files --modified | xargs getk run fix-es"

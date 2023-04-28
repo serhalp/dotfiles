@@ -169,8 +169,6 @@ noremap <M-*> :Ag "<C-R><C-W>"<CR>
 
 " Copy current filename to system clipboard
 nnoremap <leader>f :let @* = expand("%")<CR>
-" Copy `yarn runtest --watch <current filename>` to system clipboard
-nnoremap <leader>tf :let @* = "yarn run runtest --watch " . expand("%")<CR>
 
 " By default, * and # respect 'ignorecase'. This mapping forces these commands
 " to search case sensitively, which is usually what you want when searching
@@ -240,7 +238,7 @@ let g:goldenview__enable_default_mapping=0
 
 " neomake
 let js_eslint_maker = {
-    \ 'args': ['-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0'],
+    \ 'args': ['-f', 'compact', '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'],
     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
     \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'
 \ }
@@ -253,7 +251,7 @@ let g:neomake_typescript_enabled_makers = ['eslint', 'tsc']
 let g:neomake_typescriptreact_enabled_makers = ['eslint', 'tsc']
 let g:neomake_eslint_project_maker = {
     \ 'exe': 'yarn',
-    \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,goodeggs/mocha-no-exclusive-tests:0,mocha/no-exclusive-tests:0'],
+    \ 'args': ['lint', '-f', 'compact', '--rule=no-console:0,no-warning-comments:0,mocha/no-exclusive-tests:0'],
     \ 'append_file': 0,
     \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
     \   '%W%f: line %l\, col %c\, Warning - %m,%-G,%-G%*\d problems%#'

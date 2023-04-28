@@ -14,20 +14,6 @@ export BREW_PREFIX=`brew --prefix`
 export RBENV_ROOT=/usr/local/var/rbenv
 if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
-if [ -f ~/.sekret ]; then
-  source ~/.sekret
-else
-  echo ".sekret FILE NOT FOUND - skipping!"
-fi
-
-# Retrieve securely stored passwords and API keys from keychain
-get_secure_goodeggs_value () {
-  security find-generic-password -a goodeggs -s $1 -g -w
-}
-
-export HOMEBREW_GITHUB_API_TOKEN="$(get_secure_goodeggs_value homebrew_github_api)"
-export NPM_AUTH="$(get_secure_goodeggs_value npm)"
-
 eval "$(nodenv init -)"
 
 export ANDROID_HOME=$HOME/Library/Android/sdk
@@ -44,9 +30,6 @@ export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
 export PATH="$HOME/.yarn/bin:$PATH" # manually installed `yarn` binary
 
 export PATH="$HOME/.cargo/bin:$PATH"
-
-export AWS_DEFAULT_REGION=us-east-1
-export AWS_REGION=$AWS_DEFAULT_REGION
 
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
@@ -91,14 +74,6 @@ else
   echo "~/.git-prompt.sh not found - skipping!"
 fi
 
-ops() {
-  local dir_name=$(echo $1 | sed -E 's/po-/purchase-orders-/; s/f-?o-/fulfillment-options-/')
-  cd ~/Projects/ops-super/apps/$dir_name
-}
-
-clone() {
-  p && git clone git@github.com:goodeggs/$1.git && p $1
-}
 
 p() {
   cd ~/Projects/$1
@@ -107,8 +82,6 @@ p() {
 source ~/.bash_aliases
 
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
-
-export NODE_EXTRA_CA_CERTS="$HOME/Library/Application Support/mkcert/rootCA.pem"
 
 # gnupg doesn't seem to work on OS X without this
 export GPG_TTY=$(tty)

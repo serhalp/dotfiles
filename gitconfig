@@ -7,7 +7,7 @@
   ff = only
 [user]
   name = Philippe Serhal
-  email = philippe@goodeggs.com
+  email = philippe.serhal@gmail.com
 [credential]
   helper = osxkeychain
 [log]
