@@ -72,33 +72,6 @@ function! CurDir()
     return curdir
 endfunction
 
-function! GuiTabLabel()
-    " buffer_number[+] buffer_name [(number_windows)]
-
-    " Add buffer number
-    let label = v:lnum
-
-    " Add '+' if one of the buffers in the tab page is modified
-    let bufnrlist = tabpagebuflist(v:lnum)
-    for bufnr in bufnrlist
-        if getbufvar(bufnr, "&modified")
-            let label .= '+'
-            break
-        endif
-    endfor
-
-    " Append the buffer name
-    let label .= ' ' . bufname(bufnrlist[tabpagewinnr(v:lnum) - 1])
-
-    " Append the number of windows in the tab page if more than one
-    let wincount = tabpagewinnr(v:lnum, '$')
-    if wincount > 1
-        let label .= ' (' . wincount . ')'
-    endif
-
-    return label
-endfunction
-
 " Custom mappings
 
 " Clear MacVim's strange space mapping first.
