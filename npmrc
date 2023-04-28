@@ -1,4 +1,3 @@
-always-auth=true
-strict-ssl=true
-loglevel=info
-//npm.goodeggs.com/:_authToken=${NPM_AUTH}
+_authToken = ${NPM_TOKEN}
+always-auth = true
+registry = https://npm.goodeggs.com/

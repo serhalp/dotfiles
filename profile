@@ -10,8 +10,9 @@ export EDITOR='nvim'
 export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export BREW_PREFIX=`brew --prefix`
-# export RBENV_ROOT=/usr/local/var/rbenv
-# if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+
+export RBENV_ROOT=/usr/local/var/rbenv
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 if [ -f ~/.sekret ]; then
   source ~/.sekret
@@ -29,11 +30,18 @@ export NPM_AUTH="$(get_secure_goodeggs_value npm)"
 
 eval "$(nodenv init -)"
 
+export ANDROID_HOME=$HOME/Library/Android/sdk
+
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/tools
+export PATH=$PATH:$ANDROID_HOME/tools/bin
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+
 # NOTE: this should occur after `nodenv init`
 # NOTE: keep these in reverse priority order
-export PATH="$HOME/.yarn/bin:$PATH" # manually installed `yarn` binary
-export PATH="$PATH:`yarn global bin`" # globally installed yarn node module binaries
+export PATH="$PATH:`$HOME/.yarn/bin/yarn global bin`" # globally installed yarn node module binaries
 export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
+export PATH="$HOME/.yarn/bin:$PATH" # manually installed `yarn` binary
 
 export PATH="$HOME/.cargo/bin:$PATH"
 

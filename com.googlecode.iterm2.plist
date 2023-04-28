@@ -739,11 +739,11 @@
 			<key>Semantic History</key>
 			<dict>
 				<key>action</key>
-				<string>best editor</string>
+				<string>coprocess</string>
 				<key>editor</key>
 				<string>com.sublimetext.3</string>
 				<key>text</key>
-				<string></string>
+				<string>echo nvim \1 $(if [[ "\2" =~ ^[0-9]+$ ]]; then echo "+\2";fi)</string>
 			</dict>
 			<key>Send Code When Idle</key>
 			<false/>
@@ -830,11 +830,13 @@
 			<string>kNextWindowPointerAction</string>
 		</dict>
 	</dict>
-	<key>PreventEscapeSequenceFromClearingHistory</key>
-	<false/>
 	<key>Print In Black And White</key>
 	<true/>
+	<key>QuickPasteDelayBetweenCalls</key>
+	<real>0.0</real>
 	<key>ShowBookmarkName</key>
+	<false/>
+	<key>ShowFullScreenTabBar</key>
 	<false/>
 	<key>SmartPlacement</key>
 	<true/>
@@ -865,7 +867,7 @@
 	<key>WordCharacters</key>
 	<string> </string>
 	<key>findMode_iTerm</key>
-	<integer>0</integer>
+	<integer>4</integer>
 	<key>kCPKSelectionViewPreferredModeKey</key>
 	<integer>0</integer>
 	<key>kCPKSelectionViewShowHSBTextFieldsKey</key>
