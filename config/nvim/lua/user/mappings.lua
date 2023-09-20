@@ -20,6 +20,9 @@ return {
     -- Move a line of text around with Alt+j/Alt+k
     ["<M-j>"] = { "mz:m+<cr>`z" },
     ["<M-k>"] = { "mz:m-2<cr>`z" },
+
+    -- Toggle file explorer (tree-sitter) with current file focused
+    ["<leader>E"] = { "<cmd>Neotree focus reveal<cr>", desc = "Toggle Explorer w/ file focused" },
   },
   v = {
     ["<Tab>"] = { "<Esc>gV" },
