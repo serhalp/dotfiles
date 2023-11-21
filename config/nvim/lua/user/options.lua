@@ -1,13 +1,13 @@
 -- set vim options here (vim.<first_key>.<second_key> = value)
 return {
   opt = {
-    -- set to true or false etc.
     relativenumber = false, -- sets vim.opt.relativenumber
     number = true,          -- sets vim.opt.number
     spell = false,          -- sets vim.opt.spell
     signcolumn = "auto",    -- sets vim.opt.signcolumn to auto
     wrap = false,           -- sets vim.opt.wrap
     guifont = "Inconsolata Nerd Font Mono",
+    textwidth = 100,
   },
   g = {
     mapleader = " ",                 -- sets vim.g.mapleader
