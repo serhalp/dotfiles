@@ -27,6 +27,13 @@ return {
   },
 
   lsp = {
+    mappings = {
+      n = {
+        -- I use gh/gj/gk/gl for window navigation; AstroNvim uses `gl`, but same as `<leader>ld`.
+        gl = false,
+      },
+    },
+
     -- customize lsp formatting options
     formatting = {
       -- control auto formatting on save
