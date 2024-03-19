@@ -5,9 +5,20 @@ export HISTFILESIZE=100000               # big big history
 shopt -s histappend                      # append to history, don't overwrite it
 
 export BASH_SILENCE_DEPRECATION_WARNING=1
-
 export EDITOR='nvim'
-export PATH="/usr/local/bin:/usr/local/sbin:$PATH" # homebrew
+
+# homebrew - different setup for Apple Silicon vs. Intel
+if [[ $(uname -m) == 'arm64' ]]; then
+  # add `brew` cli itself to PATH
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  # add packages to PATH
+  export PATH="/opt/homebrew:$PATH"
+else
+  # add `brew` cli itself to PATH
+  eval "$(/usr/local/bin/brew shellenv)"
+  # add packages to PATH
+  export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+fi
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export BREW_PREFIX=`brew --prefix`
 
