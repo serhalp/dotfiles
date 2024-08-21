@@ -3,6 +3,18 @@
 -- Please use this mappings table to set keyboard mapping since this is the
 -- lower level configuration and more robust one. (which-key will
 -- automatically pick-up stored data by this setting.)
+
+vim.api.nvim_create_user_command("CopyCurBufAbsPathToClipboard", function()
+  local path = vim.fn.expand("%:p")
+  vim.fn.setreg("+", path)
+  vim.notify('Copied "' .. path .. '" to the clipboard!')
+end, {})
+vim.api.nvim_create_user_command("CopyCurBufRelPathToClipboard", function()
+  local path = vim.fn.fnamemodify(vim.fn.expand("%"), ":.")
+  vim.fn.setreg("+", path)
+  vim.notify('Copied "' .. path .. '" to the clipboard!')
+end, {})
+
 return {
   n = {
     ["<Tab>"] = { "<Esc>" },
@@ -15,7 +27,8 @@ return {
     ["gl"] = { "<C-w>l" },
 
     -- Copy current filename to system clipboard
-    ["<leader>f"] = { "let @* = expand(\"%%\")<CR>" },
+    ["<leader>f"] = { "<cmd>CopyCurBufRelPathToClipboard<cr>", desc = "Copy buffer rel. path to clipboard" },
+    ["<leader>F"] = { "<cmd>CopyCurBufAbsPathToClipboard<cr>", desc = "Copy buffer abs. path to clipboard" },
 
     -- Move a line of text around with Alt+j/Alt+k
     ["<M-j>"] = { "mz:m+<cr>`z" },
