@@ -42,6 +42,8 @@ else
   echo "brew bash-completion formula not found - skipping!"
 fi
 
+source ~/.git-completion.sh
+
 if [ -f ~/.git-prompt.sh ]; then
   source ~/.git-prompt.sh
 
