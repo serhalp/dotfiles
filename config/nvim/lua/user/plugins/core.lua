@@ -17,4 +17,10 @@ return {
       return opts
     end,
   },
+  {
+    "racarriga/nvim-notify",
+    opts = {
+      background_colour = "#000000"
+    }
+  }
 }
