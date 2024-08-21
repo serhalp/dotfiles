@@ -7,7 +7,7 @@
   ff = only
 [user]
   name = Philippe Serhal
-  email = philippe.serhal@gmail.com
+  email = philippe.serhal@netlify.com
 [credential]
   helper = osxkeychain
 [log]
