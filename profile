@@ -27,9 +27,14 @@ if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 eval "$(nodenv init -)"
 
-export PATH="./node_modules/.bin:$PATH" # locally installed node module binaries
+# Locally installed node module binaries
+export PATH="./node_modules/.bin:$PATH"
 
+# Rust binaries
 export PATH="$HOME/.cargo/bin:$PATH"
+
+# Go binaries
+export PATH="$HOME/go/bin:$PATH"
 
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
@@ -85,3 +90,14 @@ test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shel
 
 # gnupg doesn't seem to work on OS X without this
 export GPG_TTY=$(tty)
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/serhalp/Downloads/google-cloud-sdk/path.bash.inc' ]; then . '/Users/serhalp/Downloads/google-cloud-sdk/path.bash.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/serhalp/Downloads/google-cloud-sdk/completion.bash.inc' ]; then . '/Users/serhalp/Downloads/google-cloud-sdk/completion.bash.inc'; fi
+
+# Needed for Go development in some Netlify projects
+export CGO_LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix re2)/lib"
+export OPENSSL_ROOT_DIR="$(brew --prefix openssl)/lib"
+export GOPRIVATE="github.com/netlify/"
