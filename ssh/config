@@ -1,5 +1,3 @@
-Include /Users/serhalp/.colima/ssh_config
-
 UseKeychain yes
 
 Host github.com
