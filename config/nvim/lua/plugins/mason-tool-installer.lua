@@ -21,8 +21,7 @@ return {
         -- TODO(serhalp) Use this instead of `marksman`?
         -- "remark-language-server",
         "python-lsp-server",
-        -- FIXME(serhalp) Install fails
-        -- "ruby-lsp",
+        "ruby-lsp",
         "svelte-language-server",
         "tailwindcss-language-server",
         "typescript-language-server",
