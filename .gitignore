@@ -1,0 +1,7 @@
+# NOTE: This is the actual `.gitignore` file for this dotfiles repo,
+# not one of my dotfiles.
+
+ssh/known_hosts
+ssh/id_rsa
+
+vim/runtime/undo
