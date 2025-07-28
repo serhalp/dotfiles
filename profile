@@ -49,43 +49,8 @@ fi
 
 source ~/.git-completion.sh
 
-if [ -f ~/.git-prompt.sh ]; then
-  source ~/.git-prompt.sh
-
-  MAGENTA="\[\033[0;35m\]"
-  YELLOW="\[\033[0;33m\]"
-  BLUE="\[\033[34m\]"
-  LIGHT_GRAY="\[\033[0;37m\]"
-  CYAN="\[\033[0;36m\]"
-  GREEN="\[\033[0;32m\]"
-  RED="\[\033[0;31m\]"
-  GIT_PS1_SHOWDIRTYSTATE=true
-
-  export PROMPT_COMMAND=__prompt_command
-
-  function __prompt_command() {
-    local EXIT="$?"
-    local PROMPT_COLOR=$GREEN
-    if [ $EXIT != 0 ]
-    then
-      PROMPT_COLOR=$RED
-    fi
-
-    export PS1='$(
-        if [[ $(__git_ps1) =~ \*\)$ ]]
-        # a file has been modified but not added
-        then echo "'$YELLOW'"$(__git_ps1 "(%s)")
-        elif [[ $(__git_ps1) =~ \+\)$ ]]
-        # a file has been added, but not commited
-        then echo "'$MAGENTA'"$(__git_ps1 "(%s)")
-        # the state is clean, changes are commited
-        else echo "'$CYAN'"$(__git_ps1 "(%s)")
-        fi)'$BLUE" \W "$PROMPT_COLOR"\$ "$LIGHT_GRAY
-  }
-else
-  echo "~/.git-prompt.sh not found - skipping!"
-fi
-
+# https://starship.rs/
+eval "$(starship init bash)"
 
 p() {
   cd ~/Projects/$1
