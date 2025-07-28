@@ -1,3 +1,5 @@
+# vim: set ft=bash :
+
 # bash history
 export HISTCONTROL=ignoredups:erasedups  # no duplicate entries
 export HISTSIZE=100000                   # big big history
