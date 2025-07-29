@@ -10,8 +10,16 @@ Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ### Homebrew Packages
 
 ```bash
-brew install coreutils difftastic font-inconsolata-nerd-font gh git htop hub mise neovim ripgrep shellcheck stow the_silver_searcher tree-sitter wget
+brew install bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter wget
 ```
+
+### Change Default Shell to Bash
+
+```bash
+chsh -s /bin/bash
+```
+
+Restart your terminal for the change to take effect.
 
 ## Installation
 
@@ -37,7 +45,7 @@ I use `mise` to manage tool versions.
 1.  **Trust the configuration:**
 
     ```bash
-    mise trust
+    mise trust ~/.mise.toml
     ```
 
 2.  **Install the tools:**
