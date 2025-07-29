@@ -24,19 +24,13 @@ fi
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export BREW_PREFIX=`brew --prefix`
 
-export RBENV_ROOT=/usr/local/var/rbenv
-if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
-
-eval "$(nodenv init -)"
+eval "$(mise activate bash)"
 
 # Locally installed node module binaries
 export PATH="./node_modules/.bin:$PATH"
 
 # Rust binaries
 export PATH="$HOME/.cargo/bin:$PATH"
-
-# Go binaries
-export PATH="$HOME/go/bin:$PATH"
 
 # uv
 export PATH="$HOME/.local/bin:$PATH"
