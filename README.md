@@ -18,16 +18,17 @@ brew install coreutils difftastic font-inconsolata-nerd-font gh git htop hub mis
 From within this repo's directory, run the following command to create the symlinks:
 
 ```bash
-stow *
+stow -d stow-packages -t ~ ag bash git iterm2 mise nvim ssh
+cp com.googlecode.iterm2.plist ~/Library/Preferences/
 ```
 
 To stow individual packages, run:
 
 ```bash
-stow <package_name>
+stow -d -t ~ stow-packages <package_name>
 ```
 
-For example: `stow git`
+For example: `stow -d -t ~ stow-packages git`
 
 ## Tool Versions
 

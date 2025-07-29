@@ -1,5 +1,5 @@
 [tools]
-ruby = "latest"
+# ruby = "latest"
 python = "latest"
 go = "latest"
 node = ["22", "24", "20", "18"]
