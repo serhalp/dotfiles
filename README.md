@@ -27,8 +27,10 @@ From within this repo's directory, run the following command to create the symli
 
 ```bash
 stow -d stow-packages -t ~ ag bash git iterm2 mise nvim ssh
-cp com.googlecode.iterm2.plist ~/Library/Preferences/
+ln -s $PWD/com.googlecode.iterm2.plist ~/Library/Preferences/
 ```
+
+**Note:** After installation, restart iTerm2 completely. If the Inconsolata Nerd Font doesn't appear correctly, go to iTerm2 → Settings → Profiles → Text and manually re-select "InconsolataNF-Regular" as the font to refresh the font cache.
 
 To stow individual packages, run:
 
