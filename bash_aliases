@@ -11,3 +11,5 @@ alias agnt="ag --ignore='*test*' --ignore='*unit*' --ignore='*spec*' --ignore='*
 alias pr="hub pull-request -o"
 
 alias yesand="(test \$? -eq 0) &&"
+
+alias claude="/Users/serhalp/.claude/local/claude"

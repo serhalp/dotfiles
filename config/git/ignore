@@ -33,3 +33,5 @@ npm-debug.log
 
 # I don't know what this is but it's annoying
 *.heapsnapshot
+
+**/.claude/settings.local.json
