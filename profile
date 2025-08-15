@@ -36,6 +36,8 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # Go binaries
 export PATH="$HOME/go/bin:$PATH"
 
+export PATH="$HOME/.local/bin:$PATH"
+
 if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
   . ${BREW_PREFIX}/etc/bash_completion
 else
