@@ -36,6 +36,10 @@ return {
 
     -- Toggle file explorer (tree-sitter) with current file focused
     ["<leader>E"] = { "<cmd>Neotree focus reveal<cr>", desc = "Toggle Explorer w/ file focused" },
+
+    -- Project-wide find-and-replace via Spectre
+    ["<leader>fg"] = { "<cmd>lua require(\"spectre\").toggle()<CR>", desc = "Find and replace in all files" },
+
   },
   v = {
     ["<Tab>"] = { "<Esc>gV" },
@@ -43,6 +47,9 @@ return {
     -- Move selected lines around with Alt+j/Alt+k
     ["<M-j>"] = { ":m'>+<cr>`<my`>mzgv`yo`z" },
     ["<M-k>"] = { ":m'<-2<cr>`>my`<mzgv`yo`z" },
+
+    -- Project-wide find-and-replace via Spectre
+    ["<leader>fg"] = { "<esc><cmd>lua require(\"spectre\").open_visual()<CR>", desc = "Find and replace highlighted string in all files" },
   },
   o = {
     ["<Tab>"] = { "<Esc>" },
