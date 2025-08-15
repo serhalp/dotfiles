@@ -36,3 +36,6 @@ npm-debug.log
 
 # aider
 .aider.*
+
+# Claude Code
+**/.claude/settings.local.json
