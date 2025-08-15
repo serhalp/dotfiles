@@ -1,5 +1,6 @@
 alias g="git"
 alias n="npm"
+alias p="pnpm"
 alias y="yarn"
 alias t="travis"
 
