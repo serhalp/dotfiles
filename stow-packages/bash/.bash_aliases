@@ -2,7 +2,6 @@ alias g="git"
 alias n="npm"
 alias p="pnpm"
 alias y="yarn"
-alias t="travis"
 
 __git_complete g __git_main
 
