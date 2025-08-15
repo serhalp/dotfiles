@@ -28,6 +28,8 @@
   tool = nvim
 [mergetool "nvim"]
   cmd = nvim -f -c \"Gdiffsplit!\" \"$MERGED\"
+[diff]
+    external = difft
 [init]
 	defaultBranch = main
 [url "git@github.com:"]
