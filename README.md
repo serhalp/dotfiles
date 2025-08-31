@@ -5,12 +5,11 @@ Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ## Prerequisites
 
 - [Homebrew](https://brew.sh/)
-- [GNU Stow](https://www.gnu.org/software/stow/)
 
 ### Homebrew Packages
 
 ```bash
-brew install bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter wget
+brew install bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget
 ```
 
 ### Change Default Shell to Bash
