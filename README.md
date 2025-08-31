@@ -29,11 +29,14 @@ From within this repo's directory, run the following command to create the symli
 stow -d stow-packages -t ~ ag bash git iterm2 mise nvim ssh
 ```
 
-Then, iTerm requires additional configuration:
+Then, iTerm and iStat Menus require additional configuration:
 
 ```bash
-defaults write com.googlecode.iterm2.plist PrefsCustomFolder -string "~/Projects/dotfiles"
-defaults write com.googlecode.iterm2.plist LoadPrefsFromCustomFolder -bool true
+for plist in *.plist
+do
+  defaults write $plist PrefsCustomFolder -string "$(pwd)"
+  defaults write $plist LoadPrefsFromCustomFolder -bool true
+done
 ```
 
 **Note:** After installation, restart iTerm2 completely. If the Inconsolata Nerd Font doesn't appear correctly, go to iTerm2 → Settings → Profiles → Text and manually re-select "InconsolataNF-Regular" as the font to refresh the font cache.
