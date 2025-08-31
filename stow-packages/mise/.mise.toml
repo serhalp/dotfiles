@@ -3,3 +3,4 @@
 python = "latest"
 go = "latest"
 node = ["22", "24", "20", "18"]
+deno = ["1", "2"]

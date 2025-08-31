@@ -67,5 +67,3 @@ if [ -f '/Users/serhalp/Downloads/google-cloud-sdk/completion.bash.inc' ]; then 
 export CGO_LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix re2)/lib"
 export OPENSSL_ROOT_DIR="$(brew --prefix openssl)/lib"
 export GOPRIVATE="github.com/netlify/"
-
-. "$HOME/.deno/env"
