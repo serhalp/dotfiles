@@ -34,6 +34,12 @@ return {
       virtual_text = true,
       underline = true,
     },
+    -- Passed to `vim.filetype.add`
+    filetypes = {
+      extension = {
+        mdx = "markdown.mdx",
+      },
+    },
     -- vim options can be configured here
     options = {
       opt = { -- vim.opt.<key>
