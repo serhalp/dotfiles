@@ -9,14 +9,14 @@ return {
         "angular-language-server",
         "astro-language-server",
         "bash-language-server",
-        -- TODO(serhalp) Configure conditional loading for Biome projects
-        -- "biome",
         -- TODO(serhalp) Conditionally enable commitlint
         -- "commitlint",
         "css-lsp",
         -- FIXME(serhalp) Configure conditional loading for Deno files
         -- "deno",
         "eslint-lsp",
+        "oxfmt",
+        "oxlint",
         "html-lsp",
         "json-lsp",
         "lua-language-server",

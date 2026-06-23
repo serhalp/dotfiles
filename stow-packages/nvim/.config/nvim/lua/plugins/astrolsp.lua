@@ -28,9 +28,9 @@ return {
       },
       timeout_ms = 5000,
     },
-    -- enable servers that you already have installed without mason
+    -- enable servers not automatically set up by mason-lspconfig
     servers = {
-      -- "pyright"
+      "oxlint", -- only activates in projects with .oxlintrc.json (via lspconfig root_dir)
     },
     -- customize language server configuration options passed to `lspconfig`
     ---@diagnostic disable: missing-fields
