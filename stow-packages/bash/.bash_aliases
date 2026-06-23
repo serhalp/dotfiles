@@ -12,6 +12,8 @@ alias pr="hub pull-request -o"
 
 alias yesand="(test \$? -eq 0) &&"
 
+alias claude="/Users/serhalp/.local/bin/claude"
+
 function qq() {
   local prompt="$1"
   shift
