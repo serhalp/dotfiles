@@ -29,6 +29,13 @@ eval "$(mise activate bash)"
 # Locally installed node module binaries
 export PATH="./node_modules/.bin:$PATH"
 
+# pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
 # Rust binaries
 export PATH="$HOME/.cargo/bin:$PATH"
 
