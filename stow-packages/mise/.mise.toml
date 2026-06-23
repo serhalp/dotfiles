@@ -1,6 +1,7 @@
 [tools]
-# ruby = "latest"
+ruby = ["3"]
 python = "latest"
-go = "latest"
-node = ["22", "24", "20", "18"]
+go = "1.26.3"
+node = "24"
 deno = ["1", "2"]
+rust = "latest"
