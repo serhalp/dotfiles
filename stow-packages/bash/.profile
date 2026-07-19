@@ -9,6 +9,9 @@ shopt -s histappend                      # append to history, don't overwrite it
 export BASH_SILENCE_DEPRECATION_WARNING=1
 export EDITOR='nvim'
 
+# recursive **/* globbing, like zsh
+shopt -s globstar
+
 # homebrew - different setup for Apple Silicon vs. Intel
 if [[ $(uname -m) == 'arm64' ]]; then
   # add `brew` cli itself to PATH
