@@ -72,6 +72,6 @@ if [ -f '/Users/serhalp/Downloads/google-cloud-sdk/path.bash.inc' ]; then . '/Us
 if [ -f '/Users/serhalp/Downloads/google-cloud-sdk/completion.bash.inc' ]; then . '/Users/serhalp/Downloads/google-cloud-sdk/completion.bash.inc'; fi
 
 # Needed for Go development in some Netlify projects
-export CGO_LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix re2)/lib"
-export OPENSSL_ROOT_DIR="$(brew --prefix openssl)/lib"
+export CGO_LDFLAGS="-L${BREW_PREFIX}/opt/openssl/lib -L${BREW_PREFIX}/opt/re2/lib"
+export OPENSSL_ROOT_DIR="${BREW_PREFIX}/opt/openssl/lib"
 export GOPRIVATE="github.com/netlify/"
