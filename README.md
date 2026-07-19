@@ -9,13 +9,16 @@ Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ### Homebrew Packages
 
 ```bash
-brew install bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget
+brew install bash bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget
 ```
 
 ### Change Default Shell to Bash
 
+macOS ships an ancient Bash 3.2 (last GPLv2 release) as `/bin/bash`. Use Homebrew's modern Bash instead:
+
 ```bash
-chsh -s /bin/bash
+sudo sh -c 'echo /opt/homebrew/bin/bash >> /etc/shells'
+chsh -s /opt/homebrew/bin/bash
 ```
 
 Restart your terminal for the change to take effect.
