@@ -3,6 +3,9 @@ alias n="npm"
 alias p="pnpm"
 alias y="yarn"
 
+# bash-completion@2 loads git's completion lazily on first Tab-press, so
+# force it now to make __git_complete available for the "g" alias below.
+declare -F __git_complete >/dev/null || source "${BREW_PREFIX}/etc/bash_completion.d/git-completion.bash"
 __git_complete g __git_main
 
 alias ag="ag --hidden"

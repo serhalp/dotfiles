@@ -45,13 +45,11 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # uv
 export PATH="$HOME/.local/bin:$PATH"
 
-if [ -f ${BREW_PREFIX}/etc/bash_completion ]; then
-  . ${BREW_PREFIX}/etc/bash_completion
+if [ -r "${BREW_PREFIX}/etc/profile.d/bash_completion.sh" ]; then
+  . "${BREW_PREFIX}/etc/profile.d/bash_completion.sh"
 else
-  echo "brew bash-completion formula not found - skipping!"
+  echo "brew bash-completion@2 formula not found - skipping!"
 fi
-
-source ~/.git-completion.sh
 
 # https://starship.rs/
 eval "$(starship init bash)"
