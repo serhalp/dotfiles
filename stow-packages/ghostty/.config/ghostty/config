@@ -1,0 +1,35 @@
+# Disable programming ligatures (calt) and general ligatures (liga, dlig).
+# Matches "ASCII Ligatures" = off in the old iTerm2 profile.
+font-feature = -calt, -liga, -dlig
+
+# Matches "Normal Font: InconsolataNF-Regular 22" in the old iTerm2 profile.
+font-family = Inconsolata Nerd Font Mono
+font-size = 22
+
+# Force bash integration explicitly - "detect" wasn't picking it up, which
+# broke new tab/split working-directory inheritance (no __ghostty_hook in
+# PROMPT_COMMAND).
+shell-integration = bash
+
+# Save window/tab/split layout on every quit, not just forced quits/crashes.
+# Doesn't restore scrollback or running processes (unlike iTerm2) - just
+# reopens the same layout with fresh shells in the same directories, via
+# shell integration's cwd tracking.
+window-save-state = always
+
+# --- Considering, not yet enabled ---
+
+# iTerm2 profile had "Cursor Type: 1" (vertical bar) and "Blinking Cursor: 0".
+# Note: shell integration forces a bar cursor at the prompt regardless of
+# this setting, unless shell-integration-features includes no-cursor.
+# cursor-style = bar
+# cursor-style-blink = false
+
+# iTerm2 profile had "Scrollback Lines: 1000000" (lines). Ghostty's limit is
+# in bytes, not lines, so there's no exact equivalent — default is 10000000
+# (~10MB). Raise if 10MB feels short in practice.
+# scrollback-limit = 10000000
+
+# iTerm2 profile had "Option Key Sends: 2" / "Right Option Key Sends: 2"
+# (both sides send Esc+), for Option-as-Meta in shell/readline/nvim bindings.
+# macos-option-as-alt = true
