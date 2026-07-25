@@ -9,7 +9,7 @@ Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/).
 ### Homebrew Packages
 
 ```bash
-brew install bash bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim ripgrep shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget
+brew install bash bash-completion coreutils difftastic font-inconsolata-nerd-font gh git gnupg htop hub mise neovim pinentry-mac ripgrep shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget
 ```
 
 ### Change Default Shell to Bash
@@ -28,7 +28,7 @@ Restart your terminal for the change to take effect.
 From within this repo's directory, run the following command to create the symlinks:
 
 ```bash
-stow -d stow-packages -t ~ ag bash ghostty git iterm2 mise nvim ssh
+stow -d stow-packages -t ~ ag bash ghostty git gnupg iterm2 mise nvim ssh
 ```
 
 Then, iTerm and iStat Menus require additional configuration:
