@@ -52,6 +52,17 @@ return {
         textwidth = 100,
       },
     },
+    -- Autocommands can be configured through AstroCore as well.
+    autocmds = {
+      gitcommit_textwidth = {
+        {
+          event = "FileType",
+          pattern = "gitcommit",
+          desc = "Override built-in gitcommit ftplugin's textwidth=72",
+          callback = function() vim.opt_local.textwidth = 100 end,
+        },
+      },
+    },
     -- Mappings can be configured through AstroCore as well.
     -- NOTE: keycodes follow the casing in the vimdocs. For example, `<Leader>` must be capitalized
     mappings = {
