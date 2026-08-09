@@ -12,4 +12,12 @@ alias pr="hub pull-request -o"
 
 alias yesand="(test \$? -eq 0) &&"
 
-alias claude="/Users/serhalp/.claude/local/claude"
+function qq() {
+  local prompt="$1"
+  shift
+  claude -p "$prompt" "$@" | glow
+}
+alias wherewasi="qq 'describe the unstaged and/or uncommitted changes in my working tree'"
+
+# Secrets, managed with 1Password CLI (`op`)
+alias with-secrets='op run --env-file=$HOME/.env.op --'
