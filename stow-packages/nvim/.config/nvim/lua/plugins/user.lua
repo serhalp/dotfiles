@@ -36,12 +36,22 @@ return {
       default = {
         find = {
           cmd = "ag",
-          options = { "hidden" }
+          options = { "hidden" },
         },
         replace = {
-          cmd = "sed"
-        }
+          cmd = "sed",
+        },
       },
-    }
-  }
+    },
+  },
+  {
+    "OXY2DEV/markview.nvim",
+    lazy = false,
+    dependencies = { "saghen/blink.cmp" },
+    opts = {
+      preview = {
+        filetypes = { "markdown", "markdown.mdx" },
+      },
+    },
+  },
 }
