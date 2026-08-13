@@ -1,7 +1,8 @@
 [tools]
-ruby = ["3"]
-python = "latest"
-go = "1.26.3"
+deno = "2"
+go = "latest"
+neovim = "0.11"
 node = "24"
-deno = ["1", "2"]
-rust = "latest"
+npm = "10"
+python = "latest"
+ruby = "3.2.3"
