@@ -1,20 +1,13 @@
 # Disable programming ligatures (calt) and general ligatures (liga, dlig).
-# Matches "ASCII Ligatures" = off in the old iTerm2 profile.
 font-feature = -calt, -liga, -dlig
 
-# Matches "Normal Font: InconsolataNF-Regular 22" in the old iTerm2 profile.
 font-family = Inconsolata Nerd Font Mono
 font-size = 22
 
-# Force bash integration explicitly - "detect" wasn't picking it up, which
-# broke new tab/split working-directory inheritance (no __ghostty_hook in
-# PROMPT_COMMAND).
+# Force bash integration explicitly
 shell-integration = bash
 
 # Save window/tab/split layout on every quit, not just forced quits/crashes.
-# Doesn't restore scrollback or running processes (unlike iTerm2) - just
-# reopens the same layout with fresh shells in the same directories, via
-# shell integration's cwd tracking.
 window-save-state = always
 
 # --- Considering, not yet enabled ---
