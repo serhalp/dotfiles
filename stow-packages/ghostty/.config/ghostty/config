@@ -27,6 +27,4 @@ split-inherit-working-directory = true
 # (~10MB). Raise if 10MB feels short in practice.
 # scrollback-limit = 10000000
 
-# iTerm2 profile had "Option Key Sends: 2" / "Right Option Key Sends: 2"
-# (both sides send Esc+), for Option-as-Meta in shell/readline/nvim bindings.
-# macos-option-as-alt = true
+macos-option-as-alt = true
