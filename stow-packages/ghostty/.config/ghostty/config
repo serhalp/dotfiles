@@ -10,6 +10,10 @@ shell-integration = bash
 # Save window/tab/split layout on every quit, not just forced quits/crashes.
 window-save-state = always
 
+window-inherit-working-directory = true
+tab-inherit-working-directory = true
+split-inherit-working-directory = true
+
 # --- Considering, not yet enabled ---
 
 # iTerm2 profile had "Cursor Type: 1" (vertical bar) and "Blinking Cursor: 0".
