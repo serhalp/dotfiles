@@ -48,10 +48,10 @@ done
 To stow individual packages, run:
 
 ```bash
-stow -d -t ~ stow-packages <package_name>
+stow -d stow-packages -t ~ <package_name>
 ```
 
-For example: `stow -d -t ~ stow-packages git`
+For example: `stow -d stow-packages -t ~ git`
 
 ## Tool Versions
 
