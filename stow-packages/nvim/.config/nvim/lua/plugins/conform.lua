@@ -1,9 +1,19 @@
-local oxfmt_with_fallback = { "oxfmt", lsp_format = "fallback" }
+local oxfmt_with_fallback = {
+  "oxfmt",
+  "prettier",
+  stop_after_first = true,
+  lsp_format = "fallback",
+}
 
 ---@type LazySpec
 return {
   "stevearc/conform.nvim",
   opts = {
+    formatters = {
+      oxfmt = {
+        require_cwd = true,
+      },
+    },
     formatters_by_ft = {
       javascript = oxfmt_with_fallback,
       javascriptreact = oxfmt_with_fallback,
