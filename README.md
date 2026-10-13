@@ -10,7 +10,7 @@ Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
 ```bash
 brew install bash bash-completion@2 ca-certificates coderabbit coreutils diffnav difftastic ffmpeg \
-  font-inconsolata-nerd-font gh git glib gnupg gnutls htop hub jq mise neovim pinentry-mac ripgrep \
+  font-inconsolata-nerd-font gh git glib gnupg gnutls htop hub jq mise pinentry-mac ripgrep \
   shellcheck starship stow the_silver_searcher tree-sitter tree-sitter-cli wget yq zizmor zstd
 ```
 
