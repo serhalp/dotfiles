@@ -1,4 +1,18 @@
 {
+  "agentPushNotifEnabled": true,
+  "alwaysThinkingEnabled": true,
+  "attribution": {
+    "commit": ""
+  },
+  "enabledPlugins": {
+    "coderabbit@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "ruby-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
+  },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "true"
   },
@@ -56,6 +70,8 @@
       }
     ]
   },
+  "inputNeededNotifEnabled": true,
+  "model": "opus[1m]",
   "permissions": {
     "allow": [
       "Bash(git status *)",
@@ -126,25 +142,12 @@
     ],
     "deny": []
   },
-  "model": "opus[1m]",
-  "enabledPlugins": {
-    "github@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
-    "ruby-lsp@claude-plugins-official": true,
-    "coderabbit@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
-  },
-  "alwaysThinkingEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "tui": "fullscreen",
   "voice": {
     "enabled": false,
     "mode": "hold"
   },
-  "skipDangerousModePermissionPrompt": true,
-  "skipWorkflowUsageWarning": true,
-  "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true,
   "voiceEnabled": false
 }
