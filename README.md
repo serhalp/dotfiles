@@ -60,7 +60,7 @@ I use `mise` to manage tool versions.
 1.  **Trust the configuration:**
 
     ```bash
-    mise trust ~/.mise.toml
+    mise trust ~/.config/mise/config.toml
     ```
 
 2.  **Install the tools:**
