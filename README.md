@@ -68,3 +68,21 @@ I use `mise` to manage tool versions.
     ```bash
     mise install
     ```
+
+## Post-install
+
+A few things aren't covered by stow, mise, or Homebrew:
+
+1.  **Start the container runtime** used by the workmux sandbox. `colima`, `lima`, and `docker-cli` are installed by mise, but the VM isn't started automatically:
+
+    ```bash
+    colima start --vm-type vz --cpus 4 --memory 4
+    ```
+
+2.  **Install agent status tracking** for whichever agents you use:
+
+    ```bash
+    workmux setup
+    ```
+
+3.  **OpenCode + workmux:** released workmux doesn't support OpenCode v2 yet ([raine/workmux#290](https://github.com/raine/workmux/issues/290)) — the plugin `workmux setup` installs is a v1 plugin that fails to load. Until [PR #306](https://github.com/raine/workmux/pull/306) ships, install the v2 plugin manually: copy `index.ts`, `tui.ts`, and `status.ts` from the PR's `resources/opencode/v2/workmux-status/` into `~/.config/opencode/plugins/workmux-status/`, and delete any `~/.config/opencode/plugins/workmux-status.ts`. After #306 ships, `workmux setup` handles this automatically. Skip this step on machines that only run Claude Code.
