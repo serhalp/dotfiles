@@ -30,7 +30,7 @@ Restart your terminal for the change to take effect.
 From within this repo's directory, run the following command to create the symlinks:
 
 ```bash
-stow -d stow-packages -t ~ ag bash claude ghostty git gnupg iterm2 mise nvim ssh
+stow -d stow-packages -t ~ ag bash claude ghostty git gnupg iterm2 mise nvim ssh tmux workmux
 ```
 
 Then, iTerm and iStat Menus require additional configuration:

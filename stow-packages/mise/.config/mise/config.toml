@@ -1,7 +1,11 @@
 [tools]
 bun = "latest"
+"cargo:raine/workmux" = "latest"
+colima = "latest"
 deno = "2"
+docker-cli = "latest"
 go = "latest"
+lima = "latest"
 neovim = "0.11"
 node = "24"
 npm = "10"
@@ -9,6 +13,7 @@ opencode = "latest"
 python = "latest"
 ruby = "3.2.3"
 rust = "latest"
+tmux = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go", "rust"]

@@ -1,0 +1,14 @@
+nerdfont: true
+
+agent: opencode
+
+# sandbox:
+#   enabled: true
+
+panes:
+  - command: <agent>
+    name: agent
+    focus: true
+  - command: nvim
+    name: nvim
+    split: horizontal
