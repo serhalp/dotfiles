@@ -5,6 +5,7 @@
     "commit": ""
   },
   "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "github@claude-plugins-official": true,
@@ -72,6 +73,15 @@
   },
   "inputNeededNotifEnabled": true,
   "model": "opus[1m]",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5": {
+      "effortLevel": "medium"
+    }
+  },
+  "outputStyle": "Concise",
   "permissions": {
     "allow": [
       "Bash(git status *)",

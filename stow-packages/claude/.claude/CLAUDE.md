@@ -9,7 +9,14 @@ approval, so only do this when absolutely needed.
 
 In the shell environment, you have access to `jq`, `ag`, `rg`.
 
-Never commit or push any changes to git unless explicitly requested.
+Many of my tools are managed and shimmed by mise; see `~/.mise/.mise.toml` to know which. In
+addition, to run any arbitrary command ad hoc with any version of any tool mise supports, use `mise
+exec foo@bar -- baz`.
+
+Never commit or push any changes to git unless explicitly requested. "Do the fix", "go ahead", "ship
+it", "land it" mean apply the edits and leave the working tree dirty; they do NOT mean commit.
+This also applies to any subagent you spawn. Every prompt that lets an agent touch a repo must say:
+do NOT run `git commit` or `git push`; leave all changes uncommitted.
 
 Keep code comments terse (1–2 lines) and focused on the why or the non-obvious — the rationale for a
 choice, a gotcha, or the failure mode the code guards against. Never restate what the code already
@@ -18,3 +25,6 @@ density.
 
 In writing, avoid LLM-isms and excessive verbosity. Be concise, precise, and clear. Avoid excessive
 em-dashes.
+
+Never bump a dependency, GitHub Action, or tool across a major version without first reading its
+release notes / changelog for the majors you're crossing.
