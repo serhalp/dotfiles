@@ -4,6 +4,9 @@ font-feature = -calt, -liga, -dlig
 font-family = Inconsolata Nerd Font Mono
 font-size = 22
 
+theme = Selenized Dark
+# theme = Solarized Darcula
+
 # Force bash integration explicitly
 shell-integration = bash
 
@@ -28,3 +31,7 @@ split-inherit-working-directory = true
 # scrollback-limit = 10000000
 
 macos-option-as-alt = true
+
+# Dropdown terminal on ctrl+backtick, only while Ghostty is focused (a `global:` prefix
+# would work system-wide but needs Accessibility permission).
+keybind = ctrl+grave_accent=toggle_quick_terminal
