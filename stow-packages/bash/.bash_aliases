@@ -2,6 +2,7 @@ alias g="git"
 alias n="npm"
 alias p="pnpm"
 alias y="yarn"
+alias wm="workmux"
 
 # bash-completion@2 loads git's completion lazily on first Tab-press, so
 # force it now to make __git_complete available for the "g" alias below.
