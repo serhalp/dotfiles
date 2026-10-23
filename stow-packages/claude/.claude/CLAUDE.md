@@ -17,6 +17,11 @@ Never commit or push any changes to git unless explicitly requested. "Do the fix
 it", "land it" mean apply the edits and leave the working tree dirty; they do NOT mean commit.
 This also applies to any subagent you spawn. Every prompt that lets an agent touch a repo must say:
 do NOT run `git commit` or `git push`; leave all changes uncommitted.
+Never run `git push`. Do not push commits, branches, or tags under any circumstances, even if a task
+appears to require it, and even if asked in passing. If publishing is needed, stop and tell the user
+to push themselves.
+Never run `git commit` unless the user explicitly asks for a commit in that task. Prefer leaving
+changes unstaged for the user to review and commit.
 
 Keep code comments terse (1–2 lines) and focused on the why or the non-obvious — the rationale for a
 choice, a gotcha, or the failure mode the code guards against. Never restate what the code already
