@@ -33,3 +33,12 @@ em-dashes.
 
 Never bump a dependency, GitHub Action, or tool across a major version without first reading its
 release notes / changelog for the majors you're crossing.
+
+Before executing a task, verify its premise. If the brief states why a change is needed ("X is the
+only reason we need Y", "Z breaks under W"), test that claim first with the cheapest experiment
+available, and check whether the repo already disproves it. If the premise is false or unproven,
+stop and report before writing code. A detailed, prescriptive brief is not a verified one.
+
+Never hand-roll or port security-sensitive code (parsers, sanitizers, crypto, auth, URL/path
+handling) to replace a maintained library, even if a brief asks for it. Fix the integration instead
+(bundler config, a different entry point, a maintained alternative), or push back.
