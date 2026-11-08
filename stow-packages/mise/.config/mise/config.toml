@@ -1,20 +1,22 @@
 [tools]
-bun = "latest"
-"cargo:raine/workmux" = "latest"
-colima = "latest"
+bun = "1"
+colima = "0"
 deno = "2"
-docker-cli = "latest"
-go = "latest"
-golangci-lint = "latest"
-lima = "latest"
+docker-cli = "29"
+flyctl = "0"
+go = "1"
+golangci-lint = "2"
+lima = "2"
 neovim = "0.11.7"
 node = "24.22.0"
 npm = "10"
-pnpm = "latest"
-python = "latest"
+pnpm = "12"
+python = "3"
 ruby = "3.2.3"
-rust = "latest"
-tmux = "latest"
+rust = "1"
+tmux = "3"
+workmux = "0"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go", "rust"]
+lockfile_platforms = ["macos-arm64"]
