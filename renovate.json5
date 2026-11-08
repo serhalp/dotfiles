@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>serhalp/renovate-config:default"],
+  "packageRules": [
+    {
+      // Must be a packageRule (not top-level) to override the preset's 0.x automerge rule.
+      "description": "Never automerge: updates change this machine's setup",
+      "matchPackageNames": ["*"],
+      "automerge": false
+    }
+  ]
+}
